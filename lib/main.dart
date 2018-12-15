@@ -1,3 +1,7 @@
+import 'package:botchan_client/network/api_client.dart';
+import 'package:botchan_client/network/response/account_link_response.dart';
+import 'package:botchan_client/utility/shared_preferences_helper.dart';
+import 'package:botchan_client/utility/shared_preferences_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:after_layout/after_layout.dart';
@@ -48,15 +52,10 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> with AfterLayoutMixin<MyHomePage> {
 
-  bool isAccountLinked = false;
-
-  _launchURL() async {
-    const url = 'https://flutter.io';
+  _launchUrl(String url) async {
     if (await canLaunch(url)) {
-      print("testd:launch");
       await launch(url);
     } else {
-      print("testd:notLaunch");
       throw 'Could not launch $url';
     }
   }
@@ -65,36 +64,77 @@ class _MyHomePageState extends State<MyHomePage> with AfterLayoutMixin<MyHomePag
     final PendingDynamicLinkData data = await FirebaseDynamicLinks.instance.retrieveDynamicLink();
     final Uri deepLink = data?.link;
     switch (deepLink.path) {
-      case "link":
+      case "/link/start":
+        final accountLinked = await SharedPreferencesHelper.isAccountLinked();
         var requestParams = deepLink.queryParameters;
-        if (requestParams.containsKey("accessToken")) {
-          // 連携エンドポイントを叩いてOKならダイアログを消す
-          isAccountLinked = true;
-          Navigator.of(context).pop();
+        if (requestParams.containsKey("token") && !accountLinked) {
+          // 連携tokenを使ってエンドポイントを叩く。(期限あり)
+          final client = ApiClient(AccountLinkResponse.fromJson);
+          client.post("/account/link", {"linkToken": requestParams["token"]}).then((res) {
+            // 連携URLを取得できたら、誘導ダイアログを出す。
+            Navigator.of(context).pop();
+            _showLinkAccountDialog(res.linkUrl);
+          })
+          .catchError(() {});
         }
+        break;
+      case "/link/complete":
+        Navigator.of(context).pop();
+        SharedPreferencesHelper.setAccountLinked(true);
+        break;
     }
   }
 
-  @override
-  void initState() {
-    super.initState();
-    _retrieveDynamicLink();
+  void _showInitialDialog() async {
+    final accountLinked = await SharedPreferencesHelper.isAccountLinked();
+    if (!accountLinked) {
+      showDialog(context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) {
+            return SimpleDialog(
+                title: Text("ダウンロードありがとうございます！まずはLINEと連携するために、下のボタンをタップしてね！"),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(4.0)),
+                children: <Widget>[
+                  SimpleDialogOption(
+                    onPressed: () {
+                      // Lineアカウント友達招待
+                      _launchUrl("https://line.me/R/ti/p/XFGCw-NM4t");
+                    },
+                    child: Container(
+                      padding: EdgeInsets.all(8.0),
+                      child: Center(child: Text("BotChanを友達招待する",
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16.0
+                          )
+                      )),
+                      decoration: BoxDecoration(
+                          color: Colors.greenAccent,
+                          shape: BoxShape.rectangle,
+                          borderRadius: BorderRadius.circular(10.0)
+                      ),
+                    ),
+                  )
+                ]);
+          });
+    }
   }
 
-  @override
-  void afterFirstLayout(BuildContext context) {
+  void _showLinkAccountDialog(String linkUrl) {
     showDialog(context: context, barrierDismissible: false, builder: (BuildContext context) {
       return SimpleDialog(
-          title: Text("ダウンロードありがとうございます！まずはLINEと連携するために、下のボタンをタップしてね！"),
+          title: Text("連携完了まであと一歩です！下のリンクをタップして、LINEの連携を許可してください。"),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4.0)),
           children: <Widget>[
             SimpleDialogOption(
               onPressed: () {
-                _launchURL();
+                _launchUrl(linkUrl);
               },
               child: Container(
                 padding: EdgeInsets.all(8.0),
-                child: Center(child: Text("LINEとの連携を始める",
+                child: Center(child: Text("LINEと連携する",
                     style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
@@ -113,6 +153,17 @@ class _MyHomePageState extends State<MyHomePage> with AfterLayoutMixin<MyHomePag
   }
 
   @override
+  void initState() {
+    super.initState();
+    _retrieveDynamicLink();
+  }
+
+  @override
+  void afterFirstLayout(BuildContext context) {
+    _showInitialDialog();
+  }
+
+  @override
   Widget build(BuildContext context) {
     // This method is rerun every time setState is called, for instance as done
     // by the _incrementCounter method above.
@@ -122,7 +173,9 @@ class _MyHomePageState extends State<MyHomePage> with AfterLayoutMixin<MyHomePag
     // than having to individually change instances of widgets.
     return WillPopScope(
         onWillPop: () {
-          if (isAccountLinked) Navigator.of(context).pop();
+          SharedPreferencesHelper.isAccountLinked().then((linked) {
+            if (linked) Navigator.of(context).pop();
+          });
         },
         child: Scaffold(
           appBar: AppBar(
