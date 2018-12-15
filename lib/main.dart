@@ -27,13 +27,13 @@ class MyApp extends StatelessWidget {
         // is not restarted.
         primarySwatch: Colors.blue,
       ),
-      home: MyHomePage(title: 'Flutter Demo Home Page'),
+      home: MainPage(title: 'Flutter Demo Home Page'),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  MyHomePage({Key key, this.title}) : super(key: key);
+class MainPage extends StatefulWidget {
+  MainPage({Key key, this.title}) : super(key: key);
 
   // This widget is the home page of your application. It is stateful, meaning
   // that it has a State object (defined below) that contains fields that affect
@@ -47,10 +47,12 @@ class MyHomePage extends StatefulWidget {
   final String title;
 
   @override
-  _MyHomePageState createState() => _MyHomePageState();
+  _MainPageState createState() => _MainPageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> with AfterLayoutMixin<MyHomePage> {
+class _MainPageState extends State<MainPage> with AfterLayoutMixin<MainPage> {
+
+  int _selectedIndex = 1;
 
   _launchUrl(String url) async {
     if (await canLaunch(url)) {
@@ -88,9 +90,7 @@ class _MyHomePageState extends State<MyHomePage> with AfterLayoutMixin<MyHomePag
 
   void _showInitialDialog() async {
     final accountLinked = await SharedPreferencesHelper.isAccountLinked();
-    print("testd:showDialog?" + accountLinked.toString());
     if (!accountLinked) {
-      print("testd:showDialog!!");
       showDialog(context: context,
           barrierDismissible: false,
           builder: (BuildContext context) {
@@ -155,6 +155,12 @@ class _MyHomePageState extends State<MyHomePage> with AfterLayoutMixin<MyHomePag
     });
   }
 
+  void _onTabTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
+
   @override
   void initState() {
     super.initState();
@@ -178,7 +184,6 @@ class _MyHomePageState extends State<MyHomePage> with AfterLayoutMixin<MyHomePag
     return WillPopScope(
         onWillPop: () {
           SharedPreferencesHelper.isAccountLinked().then((linked) {
-            print("testd:accountLinked");
             if (linked) Navigator.of(context).pop();
           });
         },
@@ -217,6 +222,16 @@ class _MyHomePageState extends State<MyHomePage> with AfterLayoutMixin<MyHomePag
                 ),
               ],
             ),
+          ),
+          bottomNavigationBar: BottomNavigationBar(
+            items: <BottomNavigationBarItem>[
+              BottomNavigationBarItem(icon: Icon(Icons.format_list_bulleted), title: Text('Home')),
+              BottomNavigationBarItem(icon: Icon(Icons.group), title: Text('Business')),
+              BottomNavigationBarItem(icon: Icon(Icons.settings), title: Text('School')),
+            ],
+            currentIndex: _selectedIndex,
+            fixedColor: Colors.deepPurple,
+            onTap: _onTabTapped,
           ),
           floatingActionButton: FloatingActionButton(
             onPressed: () {},
