@@ -102,7 +102,7 @@ class _MyHomePageState extends State<MyHomePage> with AfterLayoutMixin<MyHomePag
                   SimpleDialogOption(
                     onPressed: () {
                       // Lineアカウント友達招待
-                      _launchUrl("line://ti/p/%40XFGCw-NM4t");
+                      _launchUrl("https://line.me/R/ti/p/XFGCw-NM4t");
                     },
                     child: Container(
                       padding: EdgeInsets.all(8.0),
