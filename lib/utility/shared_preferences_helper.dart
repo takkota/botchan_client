@@ -4,7 +4,7 @@ class SharedPreferencesHelper {
 
   static Future<bool> isAccountLinked() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
-    return prefs.getBool("isAccountLinked") ?? true;
+    return prefs.getBool("isAccountLinked") ?? false;
   }
 
   static Future setAccountLinked(bool value) async {

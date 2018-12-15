@@ -63,6 +63,7 @@ class _MyHomePageState extends State<MyHomePage> with AfterLayoutMixin<MyHomePag
   Future<void> _retrieveDynamicLink() async {
     final PendingDynamicLinkData data = await FirebaseDynamicLinks.instance.retrieveDynamicLink();
     final Uri deepLink = data?.link;
+    if (deepLink == null) return;
     switch (deepLink.path) {
       case "/link/start":
         final accountLinked = await SharedPreferencesHelper.isAccountLinked();
@@ -87,7 +88,9 @@ class _MyHomePageState extends State<MyHomePage> with AfterLayoutMixin<MyHomePag
 
   void _showInitialDialog() async {
     final accountLinked = await SharedPreferencesHelper.isAccountLinked();
+    print("testd:showDialog?" + accountLinked.toString());
     if (!accountLinked) {
+      print("testd:showDialog!!");
       showDialog(context: context,
           barrierDismissible: false,
           builder: (BuildContext context) {
@@ -99,7 +102,7 @@ class _MyHomePageState extends State<MyHomePage> with AfterLayoutMixin<MyHomePag
                   SimpleDialogOption(
                     onPressed: () {
                       // Lineアカウント友達招待
-                      _launchUrl("https://line.me/R/ti/p/XFGCw-NM4t");
+                      _launchUrl("line://ti/p/%40XFGCw-NM4t");
                     },
                     child: Container(
                       padding: EdgeInsets.all(8.0),
@@ -171,9 +174,11 @@ class _MyHomePageState extends State<MyHomePage> with AfterLayoutMixin<MyHomePag
     // The Flutter framework has been optimized to make rerunning build methods
     // fast, so that you can just rebuild anything that needs updating rather
     // than having to individually change instances of widgets.
+    print("testd:build");
     return WillPopScope(
         onWillPop: () {
           SharedPreferencesHelper.isAccountLinked().then((linked) {
+            print("testd:accountLinked");
             if (linked) Navigator.of(context).pop();
           });
         },
