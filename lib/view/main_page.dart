@@ -1,6 +1,9 @@
+import 'package:botchan_client/main.dart';
 import 'package:botchan_client/network/api_client.dart';
 import 'package:botchan_client/network/response/account_link_response.dart';
+import 'package:botchan_client/network/response/account_linked_response.dart';
 import 'package:botchan_client/utility/shared_preferences_helper.dart';
+import 'package:botchan_client/view/bot_list.dart';
 import 'package:firebase_dynamic_links/firebase_dynamic_links.dart';
 import 'package:flutter/material.dart';
 import 'package:after_layout/after_layout.dart';
@@ -17,7 +20,56 @@ class MainPage extends StatefulWidget {
 
 class _MainPageState extends State<MainPage> with AfterLayoutMixin<MainPage> {
 
-  int _selectedIndex = 1;
+  int _selectedTabIndex = 0;
+  int cardCount = 1;
+
+  @override
+  void initState() {
+    super.initState();
+    _retrieveDynamicLink();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return WillPopScope(
+        onWillPop: () {
+          SharedPreferencesHelper.isAccountLinked().then((linked) {
+            if (linked) Navigator.of(context).pop();
+          });
+        },
+        child: Scaffold(
+          appBar: AppBar(
+            title: Text(widget.title),
+          ),
+          body: botList(),
+          bottomNavigationBar: BottomNavigationBar(
+            items: <BottomNavigationBarItem>[
+              BottomNavigationBarItem(icon: Icon(Icons.format_list_bulleted), title: Text('ボット')),
+              BottomNavigationBarItem(icon: Icon(Icons.group), title: Text('グループ')),
+              BottomNavigationBarItem(icon: Icon(Icons.settings), title: Text('設定')),
+            ],
+            currentIndex: _selectedTabIndex,
+            fixedColor: Colors.deepPurple,
+            onTap: _onTabTapped,
+          )
+        )
+    );
+  }
+
+  @override
+  void afterFirstLayout(BuildContext context) {
+    _showTutorialIfAny();
+  }
+
+  Widget botList() {
+    if (_selectedTabIndex == 0) {
+      return BotList();
+    } else {
+      return Center(
+        child: Text("まだボットを作成してません。")
+      );
+    }
+  }
 
   _launchUrl(String url) async {
     if (await canLaunch(url)) {
@@ -32,62 +84,80 @@ class _MainPageState extends State<MainPage> with AfterLayoutMixin<MainPage> {
     final Uri deepLink = data?.link;
     if (deepLink == null) return;
     switch (deepLink.path) {
-      case "/link/start":
+      case "/link_start":
         final accountLinked = await SharedPreferencesHelper.isAccountLinked();
         var requestParams = deepLink.queryParameters;
         if (requestParams.containsKey("token") && !accountLinked) {
-          // 連携tokenを使ってエンドポイントを叩く。(期限あり)
+          // 連携tokenを使って連携URLを取得。(期限あり)
           final client = ApiClient(AccountLinkResponse.fromJson);
-          client.post("/account/link", {"linkToken": requestParams["token"]}).then((res) {
-            // 連携URLを取得できたら、誘導ダイアログを出す。
-            Navigator.of(context).pop();
-            _showLinkAccountDialog(res.linkUrl);
+          client.post("/account/link_url", {"linkToken": requestParams["token"]}).then((res) {
+            // 連携URLを取得できたら、一旦SharedPreferenceに保存しておく。
+            SharedPreferencesHelper.setLinkUrl(res.linkUrl);
           })
           .catchError(() {});
         }
         break;
-      case "/link/complete":
-        Navigator.of(context).pop();
-        SharedPreferencesHelper.setAccountLinked(true);
-        break;
     }
   }
 
-  void _showInitialDialog() async {
-    final accountLinked = await SharedPreferencesHelper.isAccountLinked();
-    if (!accountLinked) {
-      showDialog(context: context,
-          barrierDismissible: false,
-          builder: (BuildContext context) {
-            return SimpleDialog(
-                title: Text("ダウンロードありがとうございます！まずはLINEと連携するために、下のボタンをタップしてね！"),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(4.0)),
-                children: <Widget>[
-                  SimpleDialogOption(
-                    onPressed: () {
-                      // Lineアカウント友達招待
-                      _launchUrl("https://line.me/R/ti/p/XFGCw-NM4t");
-                    },
-                    child: Container(
-                      padding: EdgeInsets.all(8.0),
-                      child: Center(child: Text("BotChanを友達招待する",
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16.0
-                          )
-                      )),
-                      decoration: BoxDecoration(
-                          color: Colors.greenAccent,
-                          shape: BoxShape.rectangle,
-                          borderRadius: BorderRadius.circular(10.0)
-                      ),
-                    ),
-                  )
-                ]);
-          });
+  void _showTutorialIfAny() async {
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
     }
+    final accountLinked = await SharedPreferencesHelper.isAccountLinked();
+    final linkUrl = await SharedPreferencesHelper.getLinkUrl();
+
+    if (accountLinked) return;
+    if (linkUrl != null) {
+      // 実は連携済みかもなので、サーバーに問い合わせる。
+      final client = ApiClient(AccountLinkedResponse.fromJson);
+      client.post("/account/is_linked", {"userId": await userId}).then((res) {
+        if (res.isLinked) {
+          // 連携済みだったので、何もださない。
+          SharedPreferencesHelper.setAccountLinked(true);
+        } else {
+          // まだ連携してないので、誘導ダイアログ
+          _showLinkAccountDialog(linkUrl);
+        }
+      });
+      return;
+    }
+    // 初回ダイアログ
+    _showInitialDialog();
+  }
+
+  void _showInitialDialog() {
+    showDialog(context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return SimpleDialog(
+              title: Text("ダウンロードありがとうございます！まずはLINEと連携するために、下のボタンをタップしてね！"),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(4.0)),
+              children: <Widget>[
+                SimpleDialogOption(
+                  onPressed: () {
+                    // Lineアカウント友達招待
+                    _launchUrl("https://line.me/R/ti/p/XFGCw-NM4t");
+                  },
+                  child: Container(
+                    padding: EdgeInsets.all(8.0),
+                    child: Center(child: Text("BotChanを友達招待する",
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16.0
+                        )
+                    )),
+                    decoration: BoxDecoration(
+                        color: Colors.greenAccent,
+                        shape: BoxShape.rectangle,
+                        borderRadius: BorderRadius.circular(10.0)
+                    ),
+                  ),
+                )
+              ]);
+        });
   }
 
   void _showLinkAccountDialog(String linkUrl) {
@@ -122,88 +192,7 @@ class _MainPageState extends State<MainPage> with AfterLayoutMixin<MainPage> {
 
   void _onTabTapped(int index) {
     setState(() {
-      _selectedIndex = index;
+      _selectedTabIndex = index;
     });
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _retrieveDynamicLink();
-  }
-
-  @override
-  void afterFirstLayout(BuildContext context) {
-    _showInitialDialog();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
-    print("testd:build");
-    return WillPopScope(
-        onWillPop: () {
-          SharedPreferencesHelper.isAccountLinked().then((linked) {
-            if (linked) Navigator.of(context).pop();
-          });
-        },
-        child: Scaffold(
-          appBar: AppBar(
-            // Here we take the value from the MyHomePage object that was created by
-            // the App.build method, and use it to set our appbar title.
-            title: Text(widget.title),
-          ),
-          body: Center(
-            // Center is a layout widget. It takes a single child and positions it
-            // in the middle of the parent.
-            child: Column(
-              // Column is also layout widget. It takes a list of children and
-              // arranges them vertically. By default, it sizes itself to fit its
-              // children horizontally, and tries to be as tall as its parent.
-              //
-              // Invoke "debug painting" (press "p" in the console, choose the
-              // "Toggle Debug Paint" action from the Flutter Inspector in Android
-              // Studio, or the "Toggle Debug Paint" command in Visual Studio Code)
-              // to see the wireframe for each widget.
-              //
-              // Column has various properties to control how it sizes itself and
-              // how it positions its children. Here we use mainAxisAlignment to
-              // center the children vertically; the main axis here is the vertical
-              // axis because Columns are vertical (the cross axis would be
-              // horizontal).
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                Text(
-                  'You have pushed the button this many times:',
-                ),
-                Text(
-                  'test',
-                  style: Theme.of(context).textTheme.display1,
-                ),
-              ],
-            ),
-          ),
-          bottomNavigationBar: BottomNavigationBar(
-            items: <BottomNavigationBarItem>[
-              BottomNavigationBarItem(icon: Icon(Icons.format_list_bulleted), title: Text('Home')),
-              BottomNavigationBarItem(icon: Icon(Icons.group), title: Text('Business')),
-              BottomNavigationBarItem(icon: Icon(Icons.settings), title: Text('School')),
-            ],
-            currentIndex: _selectedIndex,
-            fixedColor: Colors.deepPurple,
-            onTap: _onTabTapped,
-          ),
-          floatingActionButton: FloatingActionButton(
-            onPressed: () {},
-            tooltip: 'Increment',
-            child: Icon(Icons.add),
-          ), // This trailing comma makes auto-formatting nicer for build methods.
-        )
-    );
   }
 }
