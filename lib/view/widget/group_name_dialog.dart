@@ -5,9 +5,13 @@ import 'package:flutter/material.dart';
 class GroupNameDialog extends StatefulWidget {
   GroupNameDialog({
     Key key,
+    this.id,
+    this.initialValue = "",
     this.lineGroupId
   }): super(key: key);
 
+  final int id;
+  final String initialValue;
   final int lineGroupId;
 
   @override
@@ -21,13 +25,20 @@ class _GroupNameDialogState extends State<GroupNameDialog> {
   @override
   void initState() {
     super.initState();
+    _groupNameTextEditController.text = widget.initialValue;
   }
 
   @override
   Widget build(BuildContext context) {
     void saveLineGroup() async {
+      var data;
+      if (widget.id == null) {
+        data = {"userId": await userId, "lineGroupId": widget.lineGroupId}; // 新規
+      } else {
+        data = {"id": widget.id}; // 更新
+      }
       dio.post("/lineGroup/save",
-          data: {"userId": await userId, "lineGroupId": widget.lineGroupId},
+          data: data
       ).then((res) {
         if (Navigator.of(context).canPop()) {
           Navigator.of(context).pop(true);

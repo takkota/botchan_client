@@ -2,22 +2,22 @@ import 'dart:async';
 
 import 'package:bloc_provider/bloc_provider.dart';
 import 'package:botchan_client/main.dart';
-import 'package:botchan_client/model/bot.dart';
+import 'package:botchan_client/model/bot_model.dart';
 import 'package:botchan_client/network/response/bot_list_response.dart';
 import 'package:rxdart/rxdart.dart';
 
 class BotListBloc extends Bloc {
-  List<Bot> _botList = List();
+  List<BotModel> _botList = List();
 
   // input entry point
-  final StreamController<List<Bot>> _listStreamController = StreamController();
-  final StreamController<Bot> _streamController = StreamController();
+  final StreamController<List<BotModel>> _listStreamController = StreamController();
+  final StreamController<BotModel> _streamController = StreamController();
 
   // output entry point
   // StreamControllerだとlistenする前に受け取ったアイテムはbufferしないので、
   // BehaviorSubjectで代わりにBufferしてあげる
-  final BehaviorSubject<List<Bot>> _behaviorSubject = BehaviorSubject<List<Bot>>();
-  Stream<List<Bot>> get botList => _behaviorSubject.stream;
+  final BehaviorSubject<List<BotModel>> _behaviorSubject = BehaviorSubject<List<BotModel>>();
+  Stream<List<BotModel>> get botList => _behaviorSubject.stream;
 
   BotListBloc() {
     _listStreamController.stream.listen((botList) {
@@ -41,14 +41,15 @@ class BotListBloc extends Bloc {
     });
   }
 
-  void addBotAll(List<Bot> botList) {
+  void addBotAll(List<BotModel> botList) {
     _listStreamController.sink.add(botList);
   }
-  void addBot(Bot bot) {
+  void addBot(BotModel bot) {
     _streamController.sink.add(bot);
   }
 
-  void dispose() async {
+  @override
+  void dispose() {
     _botList.clear();
     _listStreamController.close();
     _streamController.close();

@@ -2,28 +2,27 @@ import 'dart:async';
 
 import 'package:bloc_provider/bloc_provider.dart';
 import 'package:botchan_client/main.dart';
-import 'package:botchan_client/model/bot.dart';
+import 'package:botchan_client/model/bot_detail_model.dart';
 import 'package:botchan_client/network/request/push_schedule.dart';
 import 'package:botchan_client/network/request/reply_condition.dart';
-import 'package:botchan_client/network/response/bot_list_response.dart';
-import 'package:botchan_client/network/response/bot_response.dart';
+import 'package:botchan_client/network/response/bot_detail_response.dart';
 import 'package:dio/dio.dart';
 import 'package:rxdart/rxdart.dart';
 
 class BotDetailBloc extends Bloc {
-  BotDetailScreenData _data;
+  BotDetailModel _data;
 
   // input entry point
-  final StreamController<BotDetailScreenData> _streamController = StreamController();
+  final StreamController<BotDetailModel> _streamController = StreamController();
 
   // output entry point
   // StreamControllerだとlistenする前に受け取ったアイテムはbufferしないので、
   // BehaviorSubjectで代わりにBufferしてあげる
-  final BehaviorSubject<BotDetailScreenData> _behaviorSubject = BehaviorSubject<BotDetailScreenData>();
-  Stream<BotDetailScreenData> get stream => _behaviorSubject.stream;
+  final BehaviorSubject<BotDetailModel> _behaviorSubject = BehaviorSubject<BotDetailModel>();
+  Stream<BotDetailModel> get stream => _behaviorSubject.stream;
 
   BotDetailBloc() {
-    _data = BotDetailScreenData();
+    _data = BotDetailModel();
     _streamController.stream.listen((bot) {
       _behaviorSubject.sink.add(bot);
     });
@@ -33,7 +32,7 @@ class BotDetailBloc extends Bloc {
   void fetchBotDetail(int botId) async {
     Response res = await dio.post("/bot/detail", data: {"userId": await userId, "botId": botId});
     final botDetail = BotDetailResponse.fromJson(res.data);
-    final data = BotDetailScreenData(
+    final data = BotDetailModel(
         botId: botDetail.bot.botId,
         title: botDetail.bot.title
     );
@@ -66,7 +65,7 @@ class BotDetailBloc extends Bloc {
     }
   }
 
-  void addBot(BotDetailScreenData bot) {
+  void addBot(BotDetailModel bot) {
     _data = bot;
     _streamController.sink.add(_data);
   }
@@ -118,24 +117,4 @@ class BotDetailBloc extends Bloc {
     _streamController.close();
     _behaviorSubject.close();
   }
-}
-
-class BotDetailScreenData {
-  String botId;
-  String title;
-  BotType botType;
-  List<int> groupIds;
-  ReplyCondition replyCondition = ReplyCondition();
-  PushSchedule pushSchedule = PushSchedule(scheduleTime: DateTime.now().add(Duration(days: 1)));
-
-  BotDetailScreenData({
-    this.botId,
-    this.title = "",
-    this.botType = BotType.REPLY,
-    this.groupIds = const []
-  });
-}
-
-enum BotType {
-  REPLY, PUSH
 }

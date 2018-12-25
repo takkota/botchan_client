@@ -1,6 +1,6 @@
 import 'package:bloc_provider/bloc_provider.dart';
 import 'package:botchan_client/bloc/bot_detail_bloc.dart';
-import 'package:botchan_client/bloc/bot_list_bloc.dart';
+import 'package:botchan_client/model/bot_detail_model.dart';
 import 'package:botchan_client/network/request/push_schedule.dart';
 import 'package:botchan_client/network/request/reply_condition.dart';
 import 'package:botchan_client/view/widget/datetime_picker.dart';
@@ -8,7 +8,6 @@ import 'package:botchan_client/view/widget/match_method_dialog.dart';
 import 'package:botchan_client/view/widget/weekday_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:tuple/tuple.dart';
 import 'package:intl/intl.dart';
 
 class BotDetail extends StatefulWidget {
@@ -49,7 +48,7 @@ class _BotDetailState extends State<BotDetail>{
   Widget build(BuildContext context) {
     return StreamBuilder(
      stream: bloc.stream,
-     builder: (BuildContext context, AsyncSnapshot<BotDetailScreenData> snapshot) {
+     builder: (BuildContext context, AsyncSnapshot<BotDetailModel> snapshot) {
        if (snapshot.hasData) {
          return Scaffold(
            appBar: AppBar(
@@ -98,7 +97,7 @@ class _BotDetailState extends State<BotDetail>{
     keywordController.dispose();
   }
 
-  Widget _body(BotDetailScreenData data) {
+  Widget _body(BotDetailModel data) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
@@ -128,7 +127,7 @@ class _BotDetailState extends State<BotDetail>{
     );
   }
 
-  Widget _buildCupertinoSegmentedControl(BotDetailScreenData data) {
+  Widget _buildCupertinoSegmentedControl(BotDetailModel data) {
     return CupertinoSegmentedControl<BotType>(
         children: _botTypes,
         groupValue: data.botType, // 初期値
@@ -138,7 +137,7 @@ class _BotDetailState extends State<BotDetail>{
     );
   }
 
-  Widget _buildConditionList(BotDetailScreenData data) {
+  Widget _buildConditionList(BotDetailModel data) {
     if (data.botType == BotType.REPLY) {
       return _buildReplyConditionList(data);
     } else {
@@ -146,7 +145,7 @@ class _BotDetailState extends State<BotDetail>{
     }
   }
 
-  Widget _buildReplyConditionList(BotDetailScreenData data) {
+  Widget _buildReplyConditionList(BotDetailModel data) {
     return Column(
       children: <Widget>[
         ListTile(
@@ -188,7 +187,7 @@ class _BotDetailState extends State<BotDetail>{
     );
   }
 
-  Widget _buildPushConditionList(BotDetailScreenData data) {
+  Widget _buildPushConditionList(BotDetailModel data) {
     return Column(
       children: <Widget>[
         ListTile(

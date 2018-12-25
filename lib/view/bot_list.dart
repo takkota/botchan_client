@@ -1,6 +1,6 @@
 import 'package:bloc_provider/bloc_provider.dart';
 import 'package:botchan_client/bloc/bot_list_bloc.dart';
-import 'package:botchan_client/model/bot.dart';
+import 'package:botchan_client/model/bot_model.dart';
 import 'package:flutter/material.dart';
 
 class BotList extends StatefulWidget {
@@ -41,9 +41,9 @@ class _BotListState extends State<BotList>{
   }
 
   Widget _body() {
-    return StreamBuilder<List<Bot>>(
+    return StreamBuilder<List<BotModel>>(
       stream: bloc.botList,
-      builder: (BuildContext context, AsyncSnapshot<List<Bot>> snapshot) {
+      builder: (BuildContext context, AsyncSnapshot<List<BotModel>> snapshot) {
         if (snapshot.hasData) {
           return ListView.builder(
               padding:EdgeInsets.fromLTRB(20.0, 5.0, 20.0, 20.0) ,
@@ -63,7 +63,7 @@ class _BotListState extends State<BotList>{
     );
   }
 
-  Widget _cardItem(int index, Bot data) {
+  Widget _cardItem(int index, BotModel data) {
     return Center(
       child: Card(
         child: Column(

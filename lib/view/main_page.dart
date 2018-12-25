@@ -85,8 +85,9 @@ class _MainPageState extends State<MainPage> with AfterLayoutMixin<MainPage>, Wi
         creator: (context, _bag) => BotListBloc(),
       );
     } else {
-      return Center(
-        child: Text("まだボットを作成してません。")
+      return BlocProvider<BotListBloc>(
+        child: BotList(),
+        creator: (context, _bag) => BotListBloc(),
       );
     }
   }
