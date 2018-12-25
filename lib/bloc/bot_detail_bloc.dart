@@ -1,13 +1,18 @@
 import 'dart:async';
 
+import 'package:bloc_provider/bloc_provider.dart';
+import 'package:botchan_client/main.dart';
 import 'package:botchan_client/model/bot.dart';
-import 'package:botchan_client/network/api_client.dart';
+import 'package:botchan_client/network/request/push_schedule.dart';
+import 'package:botchan_client/network/request/reply_condition.dart';
 import 'package:botchan_client/network/response/bot_list_response.dart';
 import 'package:botchan_client/network/response/bot_response.dart';
+import 'package:dio/dio.dart';
 import 'package:rxdart/rxdart.dart';
 
-class BotDetailBloc {
-  BotDetailScreenData _data = BotDetailScreenData(botType: BotType.REPLY);
+class BotDetailBloc extends Bloc {
+  BotDetailScreenData _data;
+
   // input entry point
   final StreamController<BotDetailScreenData> _streamController = StreamController();
 
@@ -18,22 +23,46 @@ class BotDetailBloc {
   Stream<BotDetailScreenData> get stream => _behaviorSubject.stream;
 
   BotDetailBloc() {
+    _data = BotDetailScreenData();
     _streamController.stream.listen((bot) {
       _behaviorSubject.sink.add(bot);
     });
     _streamController.sink.add(_data);
   }
 
-  void fetchBotDetail() async {
-    final res = await ApiClient(BotDetailResponse.fromJson).post("/bot", {
-      "userId": ""
-    });
-    final botDetail = BotDetailScreenData(
-      id: res.bot.id,
-      name: res.bot.name
+  void fetchBotDetail(int botId) async {
+    Response res = await dio.post("/bot/detail", data: {"userId": await userId, "botId": botId});
+    final botDetail = BotDetailResponse.fromJson(res.data);
+    final data = BotDetailScreenData(
+        botId: botDetail.bot.botId,
+        title: botDetail.bot.title
     );
     if (res != null) {
-      addBot(botDetail);
+      addBot(data);
+    }
+  }
+
+  Future saveBotDetail() async {
+    final data = {};
+    if (_data.botId != null) {
+      data["botId"] = _data.botId;
+    }
+    if (_data.botType == BotType.REPLY) {
+      data.addAll({
+        "userId": await userId,
+        "keyword": _data.replyCondition.keyword,
+        "matchMethod": _data.replyCondition.matchMethod.toString().toLowerCase(),
+        "lineGroupIds": _data.groupIds
+      });
+      await dio.post("/bot/save/reply", data: data);
+    } else {
+      data.addAll({
+        "userId": await userId,
+        "scheduleTime": _data.pushSchedule.scheduleTime.toString(),
+        "days": convertDayToBitFlag(_data.pushSchedule.days),
+        "lineGroupIds": _data.groupIds
+      });
+      await dio.post("/bot/save/push", data: data);
     }
   }
 
@@ -42,11 +71,49 @@ class BotDetailBloc {
     _streamController.sink.add(_data);
   }
 
+  void changeTitle(String title) {
+    _data.title = title;
+    _streamController.sink.add(_data);
+  }
   void changeType(BotType type) {
     _data.botType = type;
     _streamController.sink.add(_data);
   }
+  void changeKeyword(String keyword) {
+    _data.replyCondition = _data.replyCondition
+        ..keyword = keyword;
+    _streamController.sink.add(_data);
+  }
+  void changeMatchMethod(MatchMethod matchMethod) {
+    _data.replyCondition = _data.replyCondition
+      ..matchMethod = matchMethod;
+    _streamController.sink.add(_data);
+  }
+  void changeScheduleDateTime(DateTime dateTime) {
+    _data.pushSchedule = _data.pushSchedule
+      ..scheduleTime = dateTime;
+    _streamController.sink.add(_data);
+  }
+  void changeDays(List<DAY> days) {
+    _data.pushSchedule = _data.pushSchedule
+      ..days = days;
+    _streamController.sink.add(_data);
+  }
 
+
+  String validateForm() {
+    if (_data.botType == BotType.REPLY) {
+      if (_data.title.isEmpty) {
+        return "タイトルは必ず入力してください。";
+      }
+    } else {
+      if (_data.pushSchedule.scheduleTime.isAfter(DateTime.now())) {
+        return "通知日時は未来日付を選択してください";
+      }
+    }
+    return null;
+  }
+  @override
   void dispose() async {
     _streamController.close();
     _behaviorSubject.close();
@@ -54,11 +121,19 @@ class BotDetailBloc {
 }
 
 class BotDetailScreenData {
-  String id;
-  String name;
+  String botId;
+  String title;
   BotType botType;
+  List<int> groupIds;
+  ReplyCondition replyCondition = ReplyCondition();
+  PushSchedule pushSchedule = PushSchedule(scheduleTime: DateTime.now().add(Duration(days: 1)));
 
-  BotDetailScreenData({this.id, this.name, this.botType});
+  BotDetailScreenData({
+    this.botId,
+    this.title = "",
+    this.botType = BotType.REPLY,
+    this.groupIds = const []
+  });
 }
 
 enum BotType {

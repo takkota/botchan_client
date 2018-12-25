@@ -9,7 +9,7 @@ class BotListResponse {
   static BotListResponse fromJson(Map<String, dynamic> json) {
     List<Bot> list = List();
     for (Map<String, String> data in json["botList"]) {
-      list.add(Bot());
+      list.add(Bot(botId: data["botId"], title: data["name"]));
     }
     return BotListResponse(list);
   }

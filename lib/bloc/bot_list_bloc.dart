@@ -1,11 +1,12 @@
 import 'dart:async';
 
+import 'package:bloc_provider/bloc_provider.dart';
+import 'package:botchan_client/main.dart';
 import 'package:botchan_client/model/bot.dart';
-import 'package:botchan_client/network/api_client.dart';
 import 'package:botchan_client/network/response/bot_list_response.dart';
 import 'package:rxdart/rxdart.dart';
 
-class BotListBloc {
+class BotListBloc extends Bloc {
   List<Bot> _botList = List();
 
   // input entry point
@@ -30,12 +31,14 @@ class BotListBloc {
   }
 
   void fetchBotList() async {
-    final res = await ApiClient(BotListResponse.fromJson).post("/bot", {
-      "userId": ""
+    dio.post("/bot", data: {
+      "userId": await userId
+    }).then((res) {
+      final botList = BotListResponse.fromJson(res.data).botList;
+      if (botList.isNotEmpty) {
+        addBotAll(botList);
+      }
     });
-    if (res != null) {
-      addBotAll(res.botList);
-    }
   }
 
   void addBotAll(List<Bot> botList) {

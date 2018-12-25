@@ -1,5 +1,5 @@
 class Bot {
-  final String id;
-  final String name;
-  Bot({this.name, this.id});
+  final String botId;
+  final String title;
+  Bot({this.title, this.botId});
 }

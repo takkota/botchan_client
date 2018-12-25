@@ -1,3 +1,4 @@
+import 'package:bloc_provider/bloc_provider.dart';
 import 'package:botchan_client/bloc/bot_list_bloc.dart';
 import 'package:botchan_client/model/bot.dart';
 import 'package:flutter/material.dart';
@@ -15,18 +16,23 @@ class _BotListState extends State<BotList>{
   @override
   void initState() {
     super.initState();
-    bloc = BotListBloc();
+    bloc = BlocProvider.of<BotListBloc>(context);
     bloc.fetchBotList();
   }
 
   @override
   Widget build(BuildContext context) {
-    return
-      Scaffold(
+    return Scaffold(
         body: _body(),
         floatingActionButton: FloatingActionButton(
-          onPressed: () {
-            Navigator.pushNamed(context, "/botDetail");
+          onPressed: () async {
+            Navigator.pushNamed(context, "/botDetail").then((value) {
+              if (value == true) {
+                Future.delayed(Duration(milliseconds: 500), () {
+                  bloc.fetchBotList();
+                });
+              }
+            });
           },
           tooltip: 'Increment',
           child: Icon(Icons.add),
@@ -68,7 +74,7 @@ class _BotListState extends State<BotList>{
               title: Text('The Enchanted Nightingale'),
               subtitle: Text('Music by Julie Gable. Lyrics by Sidney Stein.'),
               onTap: () {
-                Navigator.pushNamed(context, "/botDetail/${data.id}");
+                Navigator.pushNamed(context, "/botDetail/${data.botId}");
               },
             ),
             ButtonTheme.bar(
