@@ -1,7 +1,9 @@
 import 'package:botchan_client/bloc/bot_list_bloc.dart';
+import 'package:botchan_client/bloc/line_group_list_bloc.dart';
 import 'package:botchan_client/main.dart';
 import 'package:botchan_client/utility/shared_preferences_helper.dart';
 import 'package:botchan_client/view/bot_list.dart';
+import 'package:botchan_client/view/line_group_list.dart';
 import 'package:botchan_client/view/widget/group_name_dialog.dart';
 import 'package:firebase_dynamic_links/firebase_dynamic_links.dart';
 import 'package:flutter/cupertino.dart';
@@ -84,10 +86,17 @@ class _MainPageState extends State<MainPage> with AfterLayoutMixin<MainPage>, Wi
         child: BotList(),
         creator: (context, _bag) => BotListBloc(),
       );
+    } else if (_selectedTabIndex == 1){
+      return BlocProvider<LineGroupListBloc>(
+        child: LineGroupList(),
+        creator: (context, bag) {
+          LineGroupListBloc();
+        },
+      );
     } else {
-      return BlocProvider<BotListBloc>(
-        child: BotList(),
-        creator: (context, _bag) => BotListBloc(),
+      return BlocProvider<LineGroupListBloc>(
+        child: LineGroupList(),
+        creator: (context, _bag) => LineGroupListBloc(),
       );
     }
   }

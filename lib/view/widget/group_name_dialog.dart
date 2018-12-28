@@ -30,26 +30,6 @@ class _GroupNameDialogState extends State<GroupNameDialog> {
 
   @override
   Widget build(BuildContext context) {
-    void saveLineGroup() async {
-      var data;
-      if (widget.id == null) {
-        data = {"userId": await userId, "lineGroupId": widget.lineGroupId}; // 新規
-      } else {
-        data = {"id": widget.id}; // 更新
-      }
-      dio.post("/lineGroup/save",
-          data: data
-      ).then((res) {
-        if (Navigator.of(context).canPop()) {
-          Navigator.of(context).pop(true);
-        }
-      })
-      .catchError(() {
-        Scaffold.of(context).showSnackBar(
-            SnackBar(content: Text('保存に失敗しました。再度お試しください。')));
-      });
-    }
-
     return SimpleDialog(
         title: Column(
           children: <Widget>[
@@ -100,5 +80,25 @@ class _GroupNameDialogState extends State<GroupNameDialog> {
   void dispose() {
     super.dispose();
     _groupNameTextEditController.dispose();
+  }
+
+  void saveLineGroup() async {
+    var data;
+    if (widget.id == null) {
+      data = {"userId": await userId, "lineGroupId": widget.lineGroupId}; // 新規
+    } else {
+      data = {"id": widget.id}; // 更新
+    }
+    dio.post("/lineGroup/save",
+        data: data
+    ).then((res) {
+      if (Navigator.of(context).canPop()) {
+        Navigator.of(context).pop(true);
+      }
+    })
+        .catchError(() {
+      Scaffold.of(context).showSnackBar(
+          SnackBar(content: Text('保存に失敗しました。再度お試しください。')));
+    });
   }
 }
