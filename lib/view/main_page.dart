@@ -1,6 +1,9 @@
 import 'package:botchan_client/bloc/bot_list_bloc.dart';
 import 'package:botchan_client/bloc/line_group_list_bloc.dart';
+import 'package:botchan_client/bloc/main_bloc.dart';
 import 'package:botchan_client/main.dart';
+import 'package:botchan_client/model/line_group_model.dart';
+import 'package:botchan_client/network/response/line_group_response.dart';
 import 'package:botchan_client/utility/shared_preferences_helper.dart';
 import 'package:botchan_client/view/bot_list.dart';
 import 'package:botchan_client/view/line_group_list.dart';
@@ -13,9 +16,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:bloc_provider/bloc_provider.dart';
 
 class MainPage extends StatefulWidget {
-  MainPage({Key key, this.title}) : super(key: key);
-
-  final String title;
+  MainPage({Key key}) : super(key: key);
 
   @override
   _MainPageState createState() => _MainPageState();
@@ -25,11 +26,17 @@ class _MainPageState extends State<MainPage> with AfterLayoutMixin<MainPage>, Wi
 
   int _selectedTabIndex = 0;
   int cardCount = 1;
+  MainBloc _bloc;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+
+    _bloc = BlocProvider.of<MainBloc>(context);
+    // 全データを取得・キャッシュしておく。
+    _bloc.botListBloc.fetchBotList();
+    _bloc.lineGroupListBloc.fetchGroupList();
   }
 
   @override
@@ -42,7 +49,7 @@ class _MainPageState extends State<MainPage> with AfterLayoutMixin<MainPage>, Wi
         },
         child: Scaffold(
           appBar: AppBar(
-            title: Text(widget.title),
+            title: Text(_getTitle()),
           ),
           body: getPage(),
           bottomNavigationBar: BottomNavigationBar(
@@ -82,17 +89,9 @@ class _MainPageState extends State<MainPage> with AfterLayoutMixin<MainPage>, Wi
 
   Widget getPage() {
     if (_selectedTabIndex == 0) {
-      return BlocProvider<BotListBloc>(
-        child: BotList(),
-        creator: (context, _bag) => BotListBloc(),
-      );
+      return BotList();
     } else if (_selectedTabIndex == 1){
-      return BlocProvider<LineGroupListBloc>(
-        child: LineGroupList(),
-        creator: (context, bag) {
-          LineGroupListBloc();
-        },
-      );
+      return LineGroupList();
     } else {
       return BlocProvider<LineGroupListBloc>(
         child: LineGroupList(),
@@ -136,8 +135,10 @@ class _MainPageState extends State<MainPage> with AfterLayoutMixin<MainPage>, Wi
         // アカウント連携未済ならスキップ
         if (!await SharedPreferencesHelper.isAccountLinked()) return;
         if (deepLink.queryParameters.containsKey("lineGroupId")) {
+          // 追加ずみグループならスキップ
+          if (await _bloc.isGroupAlreadyAdded(deepLink.queryParameters["lineGroupId"])) return;
           final lineGroupId = deepLink.queryParameters["lineGroupId"];
-          _showGroupNameDialog(int.parse(lineGroupId));
+          _showGroupNameDialog(lineGroupId);
         }
         break;
     }
@@ -189,17 +190,34 @@ class _MainPageState extends State<MainPage> with AfterLayoutMixin<MainPage>, Wi
         });
   }
 
-  void _showGroupNameDialog(int lineGroupId) async {
+  void _showGroupNameDialog(String lineGroupId) async {
     showDialog(
         context: context,
         barrierDismissible: false,
         builder: (BuildContext context) {
-          return GroupNameDialog(lineGroupId: lineGroupId);
+          return GroupNameDialog(
+              lineGroupId: lineGroupId,
+              onSaveSuccess: (LineGroupModel model) {
+                _bloc.lineGroupListBloc.fetchGroupList();
+                if (Navigator.canPop(context)) {
+                  Navigator.of(context).pop();
+                }
+              }
+          );
         }
-    ).then((value) {
-      if (value == true) {
-      }
-    });
+    );
+  }
+
+  String _getTitle() {
+    switch (_selectedTabIndex) {
+      case 0:
+        return "ボット一覧";
+      case 1:
+        return "グループ一覧";
+      case 2:
+        return "オプション";
+    }
+    return "";
   }
 
   void _onTabTapped(int index) {

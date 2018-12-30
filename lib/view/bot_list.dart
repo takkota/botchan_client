@@ -1,5 +1,6 @@
 import 'package:bloc_provider/bloc_provider.dart';
 import 'package:botchan_client/bloc/bot_list_bloc.dart';
+import 'package:botchan_client/bloc/main_bloc.dart';
 import 'package:botchan_client/model/bot_model.dart';
 import 'package:flutter/material.dart';
 
@@ -16,28 +17,27 @@ class _BotListState extends State<BotList>{
   @override
   void initState() {
     super.initState();
-    bloc = BlocProvider.of<BotListBloc>(context);
-    bloc.fetchBotList();
+    bloc = BlocProvider.of<MainBloc>(context).botListBloc;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        body: _body(),
-        floatingActionButton: FloatingActionButton(
-          onPressed: () async {
-            Navigator.pushNamed(context, "/botDetail").then((value) {
-              if (value == true) {
-                Future.delayed(Duration(milliseconds: 500), () {
-                  bloc.fetchBotList();
-                });
-              }
-            });
-          },
-          tooltip: 'Increment',
-          child: Icon(Icons.add),
-        ), // This trailing comma makes auto-formatting nicer for build methods.
-      );
+      body: _body(),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          Navigator.pushNamed(context, "/botDetail").then((value) {
+            if (value == true) {
+              Future.delayed(Duration(milliseconds: 500), () {
+                bloc.fetchBotList();
+              });
+            }
+          });
+        },
+        tooltip: 'Increment',
+        child: Icon(Icons.add),
+      ), // This trailing comma makes auto-formatting nicer for build methods.
+    );
   }
 
   Widget _body() {

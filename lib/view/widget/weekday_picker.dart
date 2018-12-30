@@ -2,8 +2,8 @@
 import 'package:bloc_provider/bloc_provider.dart';
 import 'package:botchan_client/bloc/bot_detail_bloc.dart';
 import 'package:botchan_client/main.dart';
-import 'package:botchan_client/network/request/push_schedule.dart';
-import 'package:botchan_client/network/request/reply_condition.dart';
+import 'package:botchan_client/model/partial/push_schedule.dart';
+import 'package:botchan_client/model/partial/reply_condition.dart';
 import 'package:flutter/material.dart';
 
 class WeekdayPicker extends StatefulWidget {
@@ -78,7 +78,6 @@ class _WeekdayPickerState extends State<WeekdayPicker> {
   }
 
   List<Widget> _buildDaySelection() {
-    print("testd:build" + _selectedDays.toString());
     return DAY.values.map((day) {
       return _dayButton(day);
     }).toList();

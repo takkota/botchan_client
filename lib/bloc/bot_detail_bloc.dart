@@ -3,8 +3,9 @@ import 'dart:async';
 import 'package:bloc_provider/bloc_provider.dart';
 import 'package:botchan_client/main.dart';
 import 'package:botchan_client/model/bot_detail_model.dart';
-import 'package:botchan_client/network/request/push_schedule.dart';
-import 'package:botchan_client/network/request/reply_condition.dart';
+import 'package:botchan_client/model/bot_model.dart';
+import 'package:botchan_client/model/partial/push_schedule.dart';
+import 'package:botchan_client/model/partial/reply_condition.dart';
 import 'package:botchan_client/network/response/bot_detail_response.dart';
 import 'package:dio/dio.dart';
 import 'package:rxdart/rxdart.dart';
@@ -34,7 +35,10 @@ class BotDetailBloc extends Bloc {
     final botDetail = BotDetailResponse.fromJson(res.data);
     final data = BotDetailModel(
         botId: botDetail.bot.botId,
-        title: botDetail.bot.title
+        title: botDetail.bot.title,
+        botType: botDetail.bot.botType,
+        message: botDetail.bot.message,
+        groupIds: botDetail.bot.groupIds
     );
     if (res != null) {
       addBot(data);
@@ -80,7 +84,7 @@ class BotDetailBloc extends Bloc {
   }
   void changeKeyword(String keyword) {
     _data.replyCondition = _data.replyCondition
-        ..keyword = keyword;
+      ..keyword = keyword;
     _streamController.sink.add(_data);
   }
   void changeMatchMethod(MatchMethod matchMethod) {

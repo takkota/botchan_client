@@ -9,8 +9,12 @@ class LineGroupListResponse {
 
   static LineGroupListResponse fromJson(Map<String, dynamic> json) {
     List<LineGroupModel> list = List();
-    for (Map<String, String> data in json["lineGroupList"]) {
-      list.add(LineGroupModel(id: data["id"], displayName: data["displayName"]));
+    for (Map<String, dynamic> data in json["lineGroupList"]) {
+      list.add(LineGroupModel(
+          id: data["id"],
+          lineGroupId: data["lineGroupId"],
+          displayName: data["displayName"])
+      );
     }
     return LineGroupListResponse(list);
   }

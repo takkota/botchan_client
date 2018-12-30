@@ -1,6 +1,6 @@
 class LineGroupModel {
-  final String id;
+  final int id;
   final String lineGroupId;
-  final String displayName;
+  String displayName;
   LineGroupModel({this.id, this.lineGroupId, this.displayName});
 }

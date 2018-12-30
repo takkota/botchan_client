@@ -1,5 +1,7 @@
 import 'package:bloc_provider/bloc_provider.dart';
 import 'package:botchan_client/bloc/bot_detail_bloc.dart';
+import 'package:botchan_client/bloc/bot_list_bloc.dart';
+import 'package:botchan_client/bloc/main_bloc.dart';
 import 'package:botchan_client/view/bot_detail.dart';
 import 'package:botchan_client/view/main_page.dart';
 import 'package:flutter/material.dart';
@@ -12,7 +14,10 @@ class Routes {
           theme: ThemeData(
             primarySwatch: Colors.blue,
           ),
-          home: MainPage(title: 'Flutter Demo Home Page'),
+          home: BlocProvider<MainBloc>(
+            child: MainPage(),
+            creator: (context, _bag) => MainBloc(),
+          ),
           onGenerateRoute: (RouteSettings settings) {
             List<String> pathElements = settings.name.split("/");
             if (pathElements[0] != "") return null;

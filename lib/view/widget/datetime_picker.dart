@@ -2,7 +2,7 @@
 import 'package:bloc_provider/bloc_provider.dart';
 import 'package:botchan_client/bloc/bot_detail_bloc.dart';
 import 'package:botchan_client/main.dart';
-import 'package:botchan_client/network/request/reply_condition.dart';
+import 'package:botchan_client/model/partial/reply_condition.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 

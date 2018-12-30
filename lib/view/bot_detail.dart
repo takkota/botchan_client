@@ -1,10 +1,14 @@
 import 'package:bloc_provider/bloc_provider.dart';
 import 'package:botchan_client/bloc/bot_detail_bloc.dart';
+import 'package:botchan_client/bloc/message_edit_bloc.dart';
 import 'package:botchan_client/model/bot_detail_model.dart';
-import 'package:botchan_client/network/request/push_schedule.dart';
-import 'package:botchan_client/network/request/reply_condition.dart';
+import 'package:botchan_client/model/bot_model.dart';
+import 'package:botchan_client/model/partial/message.dart';
+import 'package:botchan_client/model/partial/push_schedule.dart';
+import 'package:botchan_client/model/partial/reply_condition.dart';
 import 'package:botchan_client/view/widget/datetime_picker.dart';
 import 'package:botchan_client/view/widget/match_method_dialog.dart';
+import 'package:botchan_client/view/widget/message_preview.dart';
 import 'package:botchan_client/view/widget/weekday_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -23,10 +27,12 @@ class _BotDetailState extends State<BotDetail>{
   TextEditingController keywordController;
   BotDetailBloc bloc;
 
-  final _botTypes = Map<BotType, Text>.of({
-    BotType.REPLY: Text("応答"),
-    BotType.PUSH: Text("通知")
-  });
+  final _botTypes = Map<BotType, Text>.of(
+      {
+        BotType.REPLY: Text("応答"),
+        BotType.PUSH: Text("通知")
+      }
+  );
 
   @override
   void initState() {
@@ -47,47 +53,47 @@ class _BotDetailState extends State<BotDetail>{
   @override
   Widget build(BuildContext context) {
     return StreamBuilder(
-     stream: bloc.stream,
-     builder: (BuildContext context, AsyncSnapshot<BotDetailModel> snapshot) {
-       if (snapshot.hasData) {
-         return Scaffold(
-           appBar: AppBar(
-             title: Text("ボット詳細"),
-             actions: <Widget>[
-               FlatButton(
-                   onPressed: () {
-                     final error = bloc.validateForm();
-                     if (error.isNotEmpty) {
-                       showDialog(context: context, builder: (BuildContext context) {
-                         return AlertDialog(
-                          title: FittedBox(child: Text(error), fit: BoxFit.scaleDown)
-                         );
-                       });
-                     } else {
-                       try {
-                         bloc.saveBotDetail().whenComplete(() {
-                           Navigator.of(context).pop(true);
-                         });
-                       } on Error {
-                         Scaffold.of(context).showSnackBar(
-                             SnackBar(content: Text('保存に失敗しました。再度お試しください。')));
-                       }
-                     }
-                   },
-                   textColor: Colors.white,
-                   child: Text(
-                       "保存",
-                       style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)
-                   )
-               )
-             ],
-           ),
-           body: _body(snapshot.data),
-         );
-       } else {
-         return Container();
-       }
-     },
+      stream: bloc.stream,
+      builder: (BuildContext context, AsyncSnapshot<BotDetailModel> snapshot) {
+        if (snapshot.hasData) {
+          return Scaffold(
+            appBar: AppBar(
+              title: Text("ボット詳細"),
+              actions: <Widget>[
+                FlatButton(
+                    onPressed: () {
+                      final error = bloc.validateForm();
+                      if (error.isNotEmpty) {
+                        showDialog(context: context, builder: (BuildContext context) {
+                          return AlertDialog(
+                              title: FittedBox(child: Text(error), fit: BoxFit.scaleDown)
+                          );
+                        });
+                      } else {
+                        try {
+                          bloc.saveBotDetail().whenComplete(() {
+                            Navigator.of(context).pop(true);
+                          });
+                        } on Error {
+                          Scaffold.of(context).showSnackBar(
+                              SnackBar(content: Text('保存に失敗しました。再度お試しください。')));
+                        }
+                      }
+                    },
+                    textColor: Colors.white,
+                    child: Text(
+                        "保存",
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)
+                    )
+                )
+              ],
+            ),
+            body: _body(snapshot.data),
+          );
+        } else {
+          return Container();
+        }
+      },
     );
   }
 
@@ -99,7 +105,7 @@ class _BotDetailState extends State<BotDetail>{
 
   Widget _body(BotDetailModel data) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: <Widget>[
         Center(
           child: Container(
@@ -122,7 +128,12 @@ class _BotDetailState extends State<BotDetail>{
             Expanded(child: _buildCupertinoSegmentedControl(data))
           ],
         ),
-        _buildConditionList(data)
+        _buildConditionList(data),
+        Expanded(
+          child: Center(
+              child: _buildMessagePreview(data.message)
+          ),
+        )
       ],
     );
   }
@@ -143,6 +154,17 @@ class _BotDetailState extends State<BotDetail>{
     } else {
       return _buildPushConditionList(data);
     }
+  }
+
+  Widget _buildMessagePreview(Message message) {
+    return BlocProvider(
+        child: InkWell(
+          onTap: () {
+          },
+          child: MessagePreview(isEditable: false)
+        ),
+        creator: (context, bag) => MessageEditBloc(message: message)
+    );
   }
 
   Widget _buildReplyConditionList(BotDetailModel data) {
@@ -197,7 +219,7 @@ class _BotDetailState extends State<BotDetail>{
             child: Icon(Icons.schedule, color: Colors.green),
           ),
           title: Text(
-            DateFormat('yyyy年MM月dd日 HH:mm').format(data.pushSchedule.scheduleTime.toLocal())
+              DateFormat('yyyy年MM月dd日 HH:mm').format(data.pushSchedule.scheduleTime.toLocal())
           ),
           trailing: Icon(Icons.keyboard_arrow_right, color: Colors.black26),
           onTap: () {

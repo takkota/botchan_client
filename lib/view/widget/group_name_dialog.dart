@@ -1,18 +1,25 @@
 
+import 'package:bloc_provider/bloc_provider.dart';
+import 'package:botchan_client/bloc/bot_list_bloc.dart';
 import 'package:botchan_client/main.dart';
+import 'package:botchan_client/model/line_group_model.dart';
+import 'package:botchan_client/network/response/line_group_response.dart';
 import 'package:flutter/material.dart';
 
+typedef OnSaveSuccess = void Function(LineGroupModel model);
 class GroupNameDialog extends StatefulWidget {
   GroupNameDialog({
     Key key,
     this.id,
     this.initialValue = "",
-    this.lineGroupId
+    this.lineGroupId,
+    this.onSaveSuccess
   }): super(key: key);
 
+  final OnSaveSuccess onSaveSuccess;
   final int id;
   final String initialValue;
-  final int lineGroupId;
+  final String lineGroupId;
 
   @override
   _GroupNameDialogState createState() => new _GroupNameDialogState();
@@ -49,7 +56,7 @@ class _GroupNameDialogState extends State<GroupNameDialog> {
             child: SimpleDialogOption(
                 onPressed: () {
                   if (_groupNameTextEditController.text.isNotEmpty) {
-                    saveLineGroup();
+                    _saveLineGroup();
                   } else {
                     setState(() {
                       _hasError = _groupNameTextEditController.text.isEmpty;
@@ -82,19 +89,27 @@ class _GroupNameDialogState extends State<GroupNameDialog> {
     _groupNameTextEditController.dispose();
   }
 
-  void saveLineGroup() async {
-    var data;
-    if (widget.id == null) {
-      data = {"userId": await userId, "lineGroupId": widget.lineGroupId}; // 新規
-    } else {
-      data = {"id": widget.id}; // 更新
+  void _saveLineGroup() async {
+    var data = {};
+
+    data.addAll({
+      "userId": await userId,
+      "lineGroupId": widget.lineGroupId,
+      "displayName": _groupNameTextEditController.text,
+    });
+    if (widget.id != null) {
+      // 更新の時はid必須
+      data.addAll({
+        "id": widget.id,
+      });
     }
+    print("save" + data.toString());
+
     dio.post("/lineGroup/save",
-        data: data
+      data: data
     ).then((res) {
-      if (Navigator.of(context).canPop()) {
-        Navigator.of(context).pop(true);
-      }
+      final lineGroup = LineGroupResponse.fromJson(res.data).lineGroupModel;
+      widget.onSaveSuccess(lineGroup);
     })
         .catchError(() {
       Scaffold.of(context).showSnackBar(

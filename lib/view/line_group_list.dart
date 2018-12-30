@@ -1,6 +1,7 @@
 import 'package:bloc_provider/bloc_provider.dart';
 import 'package:botchan_client/bloc/bot_list_bloc.dart';
 import 'package:botchan_client/bloc/line_group_list_bloc.dart';
+import 'package:botchan_client/bloc/main_bloc.dart';
 import 'package:botchan_client/model/line_group_model.dart';
 import 'package:botchan_client/view/widget/group_name_dialog.dart';
 import 'package:flutter/material.dart';
@@ -18,8 +19,7 @@ class _LineGroupListState extends State<LineGroupList>{
   @override
   void initState() {
     super.initState();
-    bloc = BlocProvider.of<LineGroupListBloc>(context);
-    bloc.fetchGroupList();
+    bloc = BlocProvider.of<MainBloc>(context).lineGroupListBloc;
   }
 
   @override
@@ -33,7 +33,7 @@ class _LineGroupListState extends State<LineGroupList>{
     return StreamBuilder<List<LineGroupModel>>(
       stream: bloc.groupList,
       builder: (BuildContext context, AsyncSnapshot<List<LineGroupModel>> snapshot) {
-        if (snapshot.hasData) {
+        if (snapshot.hasData && snapshot.data.length > 0) {
           return ListView.builder(
               padding:EdgeInsets.fromLTRB(20.0, 5.0, 20.0, 20.0) ,
               itemCount: snapshot.data.length,
@@ -42,11 +42,7 @@ class _LineGroupListState extends State<LineGroupList>{
               }
           );
         } else {
-          return Center(
-            child: Text("グループがありません。",
-              style: TextStyle(fontWeight: FontWeight.bold) ,
-            ),
-          );
+          return Center();
         }
       },
     );
@@ -64,7 +60,7 @@ class _LineGroupListState extends State<LineGroupList>{
                   child: Text(data.displayName)
               ),
               onTap: () {
-                _showGroupNameDialog(int.parse(data.id), data.displayName);
+                _showGroupNameDialog(data.id, data.lineGroupId, data.displayName);
               },
             ),
           ],
@@ -73,17 +69,23 @@ class _LineGroupListState extends State<LineGroupList>{
     );
   }
 
-  void _showGroupNameDialog(int id, String initialDisplayName) async {
+  void _showGroupNameDialog(int id, String lineGroupId, initialDisplayName) async {
     showDialog(
         context: context,
         barrierDismissible: false,
         builder: (BuildContext context) {
-          return GroupNameDialog(id: id, initialValue: initialDisplayName);
+          return GroupNameDialog(
+              id: id,
+              initialValue: initialDisplayName,
+              lineGroupId: lineGroupId,
+              onSaveSuccess: (LineGroupModel model) async {
+                bloc.changeGroupDisplayName(id, model.displayName);
+                if (Navigator.canPop(context)) {
+                  Navigator.of(context).pop();
+                }
+              },
+          );
         }
-    ).then((value) {
-      if (value == true) {
-        bloc.fetchGroupList();
-      }
-    });
+    );
   }
 }
