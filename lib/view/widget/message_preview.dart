@@ -1,104 +1,93 @@
-import 'package:bloc_provider/bloc_provider.dart';
-import 'package:botchan_client/bloc/bot_detail_bloc.dart';
-import 'package:botchan_client/bloc/message_edit_bloc.dart';
+import 'dart:io';
+
 import 'package:botchan_client/model/line_group_model.dart';
-import 'package:botchan_client/model/message_edit_model.dart';
 import 'package:botchan_client/model/partial/message.dart';
 import 'package:botchan_client/model/partial/message/image_message.dart';
 import 'package:botchan_client/model/partial/message/text_message.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 typedef OnSaveSuccess = void Function(LineGroupModel model);
-class MessagePreview extends StatefulWidget {
+
+class MessagePreview extends StatelessWidget {
   MessagePreview({
     Key key,
-    this.isEditable = false
+    this.message,
   }): super(key: key);
 
-  final bool isEditable;
-
-  @override
-  _MessagePreviewState createState() => new _MessagePreviewState();
-}
-
-class _MessagePreviewState extends State<MessagePreview> {
-  MessageEditBloc _bloc;
-
-  @override
-  void initState() {
-    super.initState();
-    print("testd:init");
-    _bloc = BlocProvider.of<MessageEditBloc>(context);
-  }
+  final Message message;
 
   @override
   Widget build(BuildContext context) {
-    print("testd:build");
-    return StreamBuilder(
-      stream: _bloc.messageEditStream,
-      builder: (BuildContext context, AsyncSnapshot<MessageEditModel> snapshot) {
-        if (snapshot.hasData) {
-          if (!snapshot.data.message.hasInputAny() && !widget.isEditable) {
-            // previewModeでMessage未設定
-            return _noMessage();
-          }
-          return _buildMessageBlocks(snapshot.data.message);
-        } else {
-          print("testd:container");
-          // if (preview)
-          return Container();
-        }
-      },
+    if (message == null || !message.hasContent()) {
+      // previewModeでMessage未設定
+      return _noMessage();
+    }
+    return Stack(
+      alignment: AlignmentDirectional.center,
+      children: <Widget>[
+        ClipRRect(
+            borderRadius: BorderRadius.all(Radius.circular(30.0)),
+            child: Container(
+              constraints: BoxConstraints.loose(Size(200, 200)) ,
+              decoration: BoxDecoration(
+                  color: Colors.green
+              ),
+              child: _buildMessageBlocks(message),
+            )
+        ),
+      ],
     );
   }
 
   Widget _buildMessageBlocks(Message message) {
-    print("testd:buildMessage");
-    List<Widget> _buildBlocks() {
-      List<Widget> blocks = [];
-      switch (message.type) {
-        case MessageType.TEXT:
-          blocks.add(_textBlock(message: message as TextMessage));
-          break;
-        case MessageType.IMAGE:
-          break;
-      }
-      return blocks;
+    switch (message.type) {
+      case MessageType.TEXT:
+        return _textBlock(message: message as TextMessage);
+        break;
+      case MessageType.IMAGE:
+        return _imageBlock(message: message as ImageMessage);
+        break;
     }
-
-    return Column(
-      children: _buildBlocks()
-    );
+    return Container();
   }
 
   Widget _textBlock({TextMessage message}) {
-    return Container(
-      decoration: BoxDecoration(
-          borderRadius: BorderRadius.all(Radius.circular(30.0))
-      ),
-      child: Center(
-        child: widget.isEditable ? TextFormField(
-          decoration: InputDecoration(
-              border: InputBorder.none,
-              hintText: '入力してください'
-          ),
-          onEditingComplete: () {
-          },
-          initialValue: message.text,
-        )
-            : Text(message.text),
-      ),
+    return Padding(
+        padding: EdgeInsets.all(10.0),
+        child: Text(message.text)
     );
   }
 
   Widget _imageBlock({ImageMessage message}) {
-    return Container(
-      decoration: BoxDecoration(
-          borderRadius: BorderRadius.all(Radius.circular(30.0))
-      ),
-      child: Center(
-      ),
-    );
+    if (message.cachedImage != null) {
+      // ローカルキャッシュを表示
+      return Image.memory( //変更
+        message.cachedImage.readAsBytesSync(), //変更
+        fit: BoxFit.contain,
+      );
+    } else if (message.originalContentUrl.isNotEmpty ?? false) {
+      // from network
+      return Image.network( //変更
+        message.originalContentUrl,
+        fit: BoxFit.contain,
+      );
+    } else {
+      // 画像なし
+      return Padding(
+        padding: EdgeInsets.all(5.0),
+        child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.max,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                Icon(Icons.image),
+                Text("画像を選択する")
+              ],
+            )
+        ),
+      );
+    }
   }
 
   Widget _noMessage() {
@@ -110,9 +99,4 @@ class _MessagePreviewState extends State<MessagePreview> {
       ],
     );
   }
-
-  @override
-  void dispose() {
-    super.dispose();
-  }
-  }
+}

@@ -25,8 +25,8 @@ class _LineGroupListState extends State<LineGroupList>{
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        body: _body(),
-      );
+      body: _body(),
+    );
   }
 
   Widget _body() {

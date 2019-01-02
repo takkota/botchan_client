@@ -1,7 +1,7 @@
 import 'package:bloc_provider/bloc_provider.dart';
 import 'package:botchan_client/bloc/bot_list_bloc.dart';
 import 'package:botchan_client/bloc/main_bloc.dart';
-import 'package:botchan_client/model/bot_model.dart';
+import 'package:botchan_client/model/bot_detail_model.dart';
 import 'package:flutter/material.dart';
 
 class BotList extends StatefulWidget {
@@ -41,38 +41,49 @@ class _BotListState extends State<BotList>{
   }
 
   Widget _body() {
-    return StreamBuilder<List<BotModel>>(
+    return StreamBuilder<List<BotDetailModel>>(
       stream: bloc.botList,
-      builder: (BuildContext context, AsyncSnapshot<List<BotModel>> snapshot) {
+      builder: (BuildContext context, AsyncSnapshot<List<BotDetailModel>> snapshot) {
         if (snapshot.hasData) {
-          return ListView.builder(
-              padding:EdgeInsets.fromLTRB(20.0, 5.0, 20.0, 20.0) ,
-              itemCount: snapshot.data.length,
-              itemBuilder: (BuildContext context, int index) {
-                return _cardItem(index, snapshot.data[index]);
-              }
-          );
+          if (snapshot.data.isNotEmpty) {
+            return ListView.builder(
+                padding: EdgeInsets.fromLTRB(20.0, 5.0, 20.0, 20.0),
+                itemCount: snapshot.data.length,
+                itemBuilder: (BuildContext context, int index) {
+                  return _cardItem(index, snapshot.data[index]);
+                }
+            );
+          } else {
+            return Center(
+              child: Text("作ったボットがまだありません。右上のアイコンをタップして最初のボットを作りましょう!",
+                style: TextStyle(fontWeight: FontWeight.bold) ,
+              ),
+            );
+          }
         } else {
-          return Center(
-            child: Text("作ったボットがまだありません。右上のアイコンをタップして最初のボットを作りましょう!",
-              style: TextStyle(fontWeight: FontWeight.bold) ,
-            ),
-          );
+          return Container();
         }
       },
     );
   }
 
-  Widget _cardItem(int index, BotModel data) {
+  Widget _cardItem(int index, BotDetailModel data) {
+    Widget buildSubTitle() {
+      if (data.botType == BotType.REPLY) {
+        return Text("キーワード: ${data.replyCondition.keyword}");
+      } else {
+        return Text("スケジュール:");
+      }
+    }
     return Center(
       child: Card(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
             ListTile(
-              leading: Icon(Icons.album),
-              title: Text('The Enchanted Nightingale'),
-              subtitle: Text('Music by Julie Gable. Lyrics by Sidney Stein.'),
+              leading: data.botType == BotType.REPLY ? Icon(Icons.reply) : Icon(Icons.notifications),
+              title: Text(data.title),
+              subtitle: buildSubTitle(),
               onTap: () {
                 Navigator.pushNamed(context, "/botDetail/${data.botId}");
               },
@@ -100,11 +111,5 @@ class _BotListState extends State<BotList>{
         ),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-    bloc.dispose();
   }
 }

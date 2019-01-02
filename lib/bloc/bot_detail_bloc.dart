@@ -1,17 +1,24 @@
 import 'dart:async';
+import 'dart:isolate';
 
 import 'package:bloc_provider/bloc_provider.dart';
 import 'package:botchan_client/main.dart';
 import 'package:botchan_client/model/bot_detail_model.dart';
-import 'package:botchan_client/model/bot_model.dart';
+import 'package:botchan_client/model/line_group_model.dart';
+import 'package:botchan_client/model/message_edit_model.dart';
+import 'package:botchan_client/model/partial/message/image_message.dart';
 import 'package:botchan_client/model/partial/push_schedule.dart';
 import 'package:botchan_client/model/partial/reply_condition.dart';
 import 'package:botchan_client/network/response/bot_detail_response.dart';
+import 'package:botchan_client/utility/storage_manager.dart';
 import 'package:dio/dio.dart';
+import 'package:intl/intl.dart';
 import 'package:rxdart/rxdart.dart';
+import 'package:tuple/tuple.dart';
 
 class BotDetailBloc extends Bloc {
   BotDetailModel _data;
+  ReceivePort receivePort = new ReceivePort();
 
   // input entry point
   final StreamController<BotDetailModel> _streamController = StreamController();
@@ -24,48 +31,17 @@ class BotDetailBloc extends Bloc {
 
   BotDetailBloc() {
     _data = BotDetailModel();
+
     _streamController.stream.listen((bot) {
       _behaviorSubject.sink.add(bot);
     });
-    _streamController.sink.add(_data);
   }
 
   void fetchBotDetail(int botId) async {
     Response res = await dio.post("/bot/detail", data: {"userId": await userId, "botId": botId});
-    final botDetail = BotDetailResponse.fromJson(res.data);
-    final data = BotDetailModel(
-        botId: botDetail.bot.botId,
-        title: botDetail.bot.title,
-        botType: botDetail.bot.botType,
-        message: botDetail.bot.message,
-        groupIds: botDetail.bot.groupIds
-    );
+    final data = BotDetailResponse.fromJson(res.data).bot;
     if (res != null) {
       addBot(data);
-    }
-  }
-
-  Future saveBotDetail() async {
-    final data = {};
-    if (_data.botId != null) {
-      data["botId"] = _data.botId;
-    }
-    if (_data.botType == BotType.REPLY) {
-      data.addAll({
-        "userId": await userId,
-        "keyword": _data.replyCondition.keyword,
-        "matchMethod": _data.replyCondition.matchMethod.toString().toLowerCase(),
-        "lineGroupIds": _data.groupIds
-      });
-      await dio.post("/bot/save/reply", data: data);
-    } else {
-      data.addAll({
-        "userId": await userId,
-        "scheduleTime": _data.pushSchedule.scheduleTime.toString(),
-        "days": convertDayToBitFlag(_data.pushSchedule.days),
-        "lineGroupIds": _data.groupIds
-      });
-      await dio.post("/bot/save/push", data: data);
     }
   }
 
@@ -102,22 +78,91 @@ class BotDetailBloc extends Bloc {
       ..days = days;
     _streamController.sink.add(_data);
   }
+  void changeAttachedGroups(List<LineGroupModel> attachedGroups) {
+    _data.lineGroups = attachedGroups;
+    _streamController.sink.add(_data);
+  }
 
+  void reflectMessageEdit(MessageEditModel model) {
+    _data.message = model.message;
+    _streamController.sink.add(_data);
+  }
 
-  String validateForm() {
-    if (_data.botType == BotType.REPLY) {
-      if (_data.title.isEmpty) {
-        return "タイトルは必ず入力してください。";
-      }
-    } else {
-      if (_data.pushSchedule.scheduleTime.isAfter(DateTime.now())) {
-        return "通知日時は未来日付を選択してください";
+  Future<Tuple2<String, String>> uploadImage() async {
+    final file = (_data.message as ImageMessage).cachedImage;
+
+    print("uploading...");
+    return StorageManager.uploadImage(new DecodeParam(file, receivePort.sendPort));
+  }
+
+  Future<Null> save() async {
+    if (_data.message is ImageMessage) {
+      // 画像メッセージの場合
+      if ((_data.message as ImageMessage).cachedImage == null) {
+        // 画像を新規 or 更新の時だけuploadする。
+        final urls = await uploadImage();
+        (_data.message as ImageMessage).originalContentUrl = urls.item1;
+        (_data.message as ImageMessage).previewImageUrl = urls.item2;
       }
     }
-    return null;
+
+    final data = {};
+    // 共通項目
+    data.addAll({
+      "message": _data.message.toJson(),
+      "title": _data.title,
+      "lineGroupIds": _data.lineGroups.map ((group) { return group.lineGroupId; }).toList()
+    });
+    if (_data.botId != null) {
+      // 更新の場合のみ
+      data["botId"] = _data.botId;
+    }
+    if (_data.botType == BotType.REPLY) {
+      // 返答タイプ
+      data.addAll({
+        "userId": await userId,
+        "replyConditionId": _data.replyCondition.id,
+        "keyword": _data.replyCondition.keyword,
+        "matchMethod": _data.replyCondition.matchMethod == MatchMethod.PARTIAL ? "partial" : "exact",
+      });
+      await dio.post("/bot/reply/save", data: data);
+    } else {
+      // 通知タイプ
+      data.addAll({
+        "userId": await userId,
+        "pushScheduleId": _data.pushSchedule.id,
+        "scheduleTime": DateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS").format(_data.pushSchedule.scheduleTime.toLocal()),
+        "days": PushSchedule.convertDaysToBitFlag(_data.pushSchedule.days),
+      });
+      await dio.post("/bot/push/save", data: data);
+    }
+  }
+
+  BotDetailModel getCurrentModel() {
+    return _data;
+  }
+
+  dynamic validateForm() {
+    if (_data.title.isEmpty) {
+      return "タイトルは必ず入力してください。";
+    }
+    if (_data.botType == BotType.REPLY) {
+      if (_data.replyCondition.keyword.isEmpty) {
+        return "キーワードは必ず入力してください。";
+      }
+    } else {
+      if (_data.pushSchedule.scheduleTime.isBefore(DateTime.now())) {
+        return "通知日時は未来日付を選択してください。";
+      }
+    }
+    if (_data.message == null || !_data.message.hasContent()) {
+      return "メッセージが作成されていません。";
+    }
+    return true;
   }
   @override
   void dispose() async {
+    receivePort.close();
     _streamController.close();
     _behaviorSubject.close();
   }

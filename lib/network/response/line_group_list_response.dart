@@ -1,5 +1,5 @@
-import 'package:botchan_client/model/bot_model.dart';
 import 'package:botchan_client/model/line_group_model.dart';
+import 'package:botchan_client/network/response/line_group_response.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 class LineGroupListResponse {
@@ -9,12 +9,9 @@ class LineGroupListResponse {
 
   static LineGroupListResponse fromJson(Map<String, dynamic> json) {
     List<LineGroupModel> list = List();
+
     for (Map<String, dynamic> data in json["lineGroupList"]) {
-      list.add(LineGroupModel(
-          id: data["id"],
-          lineGroupId: data["lineGroupId"],
-          displayName: data["displayName"])
-      );
+      list.add(LineGroupResponse.fromJson(data).lineGroupModel);
     }
     return LineGroupListResponse(list);
   }

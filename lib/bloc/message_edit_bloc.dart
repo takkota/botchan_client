@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:bloc_provider/bloc_provider.dart';
 import 'package:botchan_client/model/message_edit_model.dart';
@@ -38,15 +39,31 @@ class MessageEditBloc extends Bloc {
     _behaviorSubject.sink.add(_model);
   }
 
+  void saveImageCache(File file) {
+    (_model.message as ImageMessage).cachedImage = file;
+    _behaviorSubject.sink.add(_model);
+  }
 
-  void uploadImage(String text) {
-    // originalContent
-    // previewImage
+  void removeImageCache() {
+    (_model.message as ImageMessage).cachedImage = null;
+  }
+
+  File getCachedImage() {
+    return (_model.message as ImageMessage).cachedImage;
+  }
+
+  String getImageUrl() {
+    return (_model.message as ImageMessage).originalContentUrl;
+  }
+
+  MessageEditModel getCurrentModel() {
+    return _model;
   }
 
   @override
   void dispose() async {
     _behaviorSubject.close();
+    _model = null;
   }
 
 }

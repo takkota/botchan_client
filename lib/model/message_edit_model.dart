@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:botchan_client/model/partial/message.dart';
 import 'package:botchan_client/model/partial/message/text_message.dart';
 

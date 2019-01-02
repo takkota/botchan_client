@@ -12,12 +12,14 @@ class TextMessage extends Message {
 
   @override
   Map<String, dynamic> toJson() {
-    // TODO: implement toJson
-    return null;
+    return {
+      "type": "text",
+      "text": text,
+    };
   }
 
   @override
-  bool hasInputAny() {
+  bool hasContent() {
     return text?.isNotEmpty ?? false;
   }
 }

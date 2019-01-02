@@ -1,22 +1,33 @@
-import 'package:botchan_client/model/bot_model.dart';
+import 'dart:io';
+
+import 'package:botchan_client/model/line_group_model.dart';
 import 'package:botchan_client/model/partial/message.dart';
 import 'package:botchan_client/model/partial/push_schedule.dart';
 import 'package:botchan_client/model/partial/reply_condition.dart';
 
 class BotDetailModel {
-  String botId;
+  int botId;
   String title;
   BotType botType;
-  List<String> groupIds;
-  ReplyCondition replyCondition = ReplyCondition();
-  PushSchedule pushSchedule = PushSchedule(scheduleTime: DateTime.now().add(Duration(days: 1)));
+  List<LineGroupModel> lineGroups;
+  ReplyCondition replyCondition;
+  PushSchedule pushSchedule;
   Message message;
 
   BotDetailModel({
     this.botId,
     this.title = "",
     this.botType = BotType.REPLY,
-    this.groupIds = const [],
+    this.lineGroups = const [],
+    this.replyCondition,
+    this.pushSchedule,
     this.message
-  });
+  }) {
+    this.replyCondition = ReplyCondition(matchMethod: MatchMethod.PARTIAL);
+    this.pushSchedule = PushSchedule(scheduleTime: DateTime.now().add(Duration(days: 1)));
+  }
+}
+
+enum BotType {
+  REPLY, PUSH
 }

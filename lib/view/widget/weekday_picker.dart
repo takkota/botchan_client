@@ -93,7 +93,7 @@ class _WeekdayPickerState extends State<WeekdayPicker> {
         margin:EdgeInsets.symmetric(horizontal: 3.0) ,
         child: new Center(
           child: new Text(
-              convertDayToString(day),
+              PushSchedule.convertDayToString(day),
               style: new TextStyle(
                   color: isSelected ? Colors.white : Colors.black12,
                   //fontWeight: FontWeight.bold,

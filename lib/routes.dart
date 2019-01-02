@@ -4,6 +4,7 @@ import 'package:botchan_client/bloc/bot_list_bloc.dart';
 import 'package:botchan_client/bloc/main_bloc.dart';
 import 'package:botchan_client/view/bot_detail.dart';
 import 'package:botchan_client/view/main_page.dart';
+import 'package:botchan_client/view/message_editor.dart';
 import 'package:flutter/material.dart';
 
 class Routes {
@@ -27,7 +28,7 @@ class Routes {
               case "botDetail":
                 return MaterialPageRoute(builder: (context) =>
                     BlocProvider(
-                      child: pathElements.length > 2 ? BotDetail(id: pathElements[2]) : BotDetail(),
+                      child: pathElements.length > 2 ? BotDetail(botId: int.parse(pathElements[2])) : BotDetail(),
                       creator: (context, bag) => BotDetailBloc(),
                     ),
                     fullscreenDialog: true);

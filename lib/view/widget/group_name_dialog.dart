@@ -103,7 +103,6 @@ class _GroupNameDialogState extends State<GroupNameDialog> {
         "id": widget.id,
       });
     }
-    print("save" + data.toString());
 
     dio.post("/lineGroup/save",
       data: data
