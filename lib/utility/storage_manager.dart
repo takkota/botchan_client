@@ -1,23 +1,18 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:isolate';
-import 'dart:typed_data';
 
-import 'package:botchan_client/utility/file_controller.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:image/image.dart';
-import 'image_controller.dart';
 import 'package:uuid/uuid.dart';
 import 'package:tuple/tuple.dart';
 
 class StorageManager {
-  static Future<Tuple2<String, String>> uploadImage(DecodeParam param) async {
+  static Future<Tuple2<String, String>> uploadImage(File file) async {
     final storage = FirebaseStorage.instance;
     final String uuid = Uuid().v4();
     // original
     final StorageReference originalRef = storage.ref().child('images').child('original').child('$uuid.jpg');
     final StorageUploadTask originalTask = originalRef.putFile(
-      param.file,
+      file,
       StorageMetadata(
         contentLanguage: 'ja',
         contentType: 'image/jpeg',
@@ -26,20 +21,16 @@ class StorageManager {
     // preview
     final StorageReference previewRef = storage.ref().child('images').child('preview').child('$uuid.jpg');
     final StorageUploadTask previewTask = previewRef.putFile(
-      param.file,
+      file,
       StorageMetadata(
         contentLanguage: 'ja',
         contentType: 'image/jpeg',
       ),
     );
-    final originalUrl = await (await originalTask.onComplete).ref.getDownloadURL();
-    final previewUrl = await (await previewTask.onComplete).ref.getDownloadURL();
+    var originalUrl = await (await originalTask.onComplete).ref.getDownloadURL();
+    originalUrl = originalUrl.toString().split("&token=")[0];
+    var previewUrl = await (await previewTask.onComplete).ref.getDownloadURL();
+    previewUrl = previewUrl.toString().split("&token=")[0];
     return Tuple2(originalUrl, previewUrl);
   }
-}
-
-class DecodeParam {
-  final File file;
-  final SendPort sendPort;
-  DecodeParam(this.file, this.sendPort);
 }

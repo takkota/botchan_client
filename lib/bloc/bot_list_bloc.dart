@@ -35,9 +35,7 @@ class BotListBloc extends Bloc {
       "userId": await userId
     }).then((res) {
       final botList = BotListResponse.fromJson(res.data).botList;
-      if (botList.isNotEmpty) {
-        addBotAll(botList);
-      }
+      addBotAll(botList);
     });
   }
 

@@ -1,6 +1,5 @@
 import 'package:botchan_client/model/line_group_model.dart';
 import 'package:botchan_client/network/response/line_group_response.dart';
-import 'package:json_annotation/json_annotation.dart';
 
 class LineGroupListResponse {
   final List<LineGroupModel> lineGroupList;

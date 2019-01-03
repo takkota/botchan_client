@@ -52,7 +52,6 @@ class BotDetailBloc extends Bloc {
 
   void changeTitle(String title) {
     _data.title = title;
-    _streamController.sink.add(_data);
   }
   void changeType(BotType type) {
     _data.botType = type;
@@ -61,7 +60,6 @@ class BotDetailBloc extends Bloc {
   void changeKeyword(String keyword) {
     _data.replyCondition = _data.replyCondition
       ..keyword = keyword;
-    _streamController.sink.add(_data);
   }
   void changeMatchMethod(MatchMethod matchMethod) {
     _data.replyCondition = _data.replyCondition
@@ -92,13 +90,15 @@ class BotDetailBloc extends Bloc {
     final file = (_data.message as ImageMessage).cachedImage;
 
     print("uploading...");
-    return StorageManager.uploadImage(new DecodeParam(file, receivePort.sendPort));
+    return StorageManager.uploadImage(file);
   }
 
   Future<Null> save() async {
     if (_data.message is ImageMessage) {
+      print("test:image");
       // 画像メッセージの場合
-      if ((_data.message as ImageMessage).cachedImage == null) {
+      if ((_data.message as ImageMessage).cachedImage != null) {
+        print("test:upload");
         // 画像を新規 or 更新の時だけuploadする。
         final urls = await uploadImage();
         (_data.message as ImageMessage).originalContentUrl = urls.item1;

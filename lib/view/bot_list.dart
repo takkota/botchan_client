@@ -56,7 +56,7 @@ class _BotListState extends State<BotList>{
           } else {
             return Center(
               child: Text("作ったボットがまだありません。右上のアイコンをタップして最初のボットを作りましょう!",
-                style: TextStyle(fontWeight: FontWeight.bold) ,
+                style: TextStyle(fontWeight: FontWeight.bold),
               ),
             );
           }
