@@ -1,3 +1,4 @@
+import 'package:botchan_client/model/partial/message/flex_message.dart';
 import 'package:botchan_client/model/partial/message/image_message.dart';
 import 'package:botchan_client/model/partial/message/text_message.dart';
 
@@ -14,6 +15,10 @@ abstract class Message {
         return TextMessage.fromJson(json);
       case "image":
         return ImageMessage.fromJson(json);
+      case "video":
+        return ImageMessage.fromJson(json);
+      case "flex":
+        return FlexMessage.fromJson(json);
     }
     return TextMessage.fromJson(json);
   }
@@ -23,7 +28,7 @@ abstract class Message {
 }
 
 enum MessageType {
-  TEXT, IMAGE
+  TEXT, IMAGE, VIDEO, FLEX
 }
 
 class QuickReply {

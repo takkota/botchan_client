@@ -13,7 +13,7 @@ class Routes {
         MaterialApp(
           title: 'BotChan',
           theme: ThemeData(
-            primarySwatch: Colors.blue,
+            primarySwatch: Colors.green,
           ),
           home: BlocProvider<MainBloc>(
             child: MainPage(),

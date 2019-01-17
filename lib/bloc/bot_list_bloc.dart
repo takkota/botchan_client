@@ -21,7 +21,7 @@ class BotListBloc extends Bloc {
 
   BotListBloc() {
     _listStreamController.stream.listen((botList) {
-      _botList.addAll(botList);
+      _botList = botList;
       _behaviorSubject.sink.add(_botList);
     });
     _streamController.stream.listen((bot) {
@@ -35,15 +35,24 @@ class BotListBloc extends Bloc {
       "userId": await userId
     }).then((res) {
       final botList = BotListResponse.fromJson(res.data).botList;
-      addBotAll(botList);
+      refreshBotAll(botList);
     });
   }
 
-  void addBotAll(List<BotDetailModel> botList) {
+  void refreshBotAll(List<BotDetailModel> botList) {
     _listStreamController.sink.add(botList);
   }
   void addBot(BotDetailModel bot) {
     _streamController.sink.add(bot);
+  }
+  Future deleteBot(BotDetailModel bot) async {
+    await dio.post("/bot/delete", data: {
+      "botId": bot.botId,
+      "userId": await userId
+    }).whenComplete(() {
+      _botList.remove(bot);
+      refreshBotAll(_botList);
+    });
   }
 
   @override

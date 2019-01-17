@@ -3,6 +3,8 @@ import 'package:botchan_client/bloc/bot_list_bloc.dart';
 import 'package:botchan_client/bloc/main_bloc.dart';
 import 'package:botchan_client/model/bot_detail_model.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:modal_progress_hud/modal_progress_hud.dart';
 
 class BotList extends StatefulWidget {
   BotList({Key key}) : super(key: key);
@@ -13,6 +15,7 @@ class BotList extends StatefulWidget {
 
 class _BotListState extends State<BotList>{
   BotListBloc bloc;
+  bool _progressing = false;
 
   @override
   void initState() {
@@ -22,21 +25,21 @@ class _BotListState extends State<BotList>{
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: _body(),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          Navigator.pushNamed(context, "/botDetail").then((value) {
-            if (value == true) {
-              Future.delayed(Duration(milliseconds: 500), () {
+    return ModalProgressHUD(
+        inAsyncCall: _progressing,
+        child: Scaffold(
+          body: _body(),
+          floatingActionButton: FloatingActionButton(
+            onPressed: () async {
+              final result = await Navigator.pushNamed(context, "/botDetail");
+              if (result == true) {
                 bloc.fetchBotList();
-              });
-            }
-          });
-        },
-        tooltip: 'Increment',
-        child: Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+              }
+            },
+            tooltip: 'Increment',
+            child: Icon(Icons.add),
+          ), // This trailing comma makes auto-formatting nicer for build methods.
+        )
     );
   }
 
@@ -50,7 +53,7 @@ class _BotListState extends State<BotList>{
                 padding: EdgeInsets.fromLTRB(20.0, 5.0, 20.0, 20.0),
                 itemCount: snapshot.data.length,
                 itemBuilder: (BuildContext context, int index) {
-                  return _cardItem(index, snapshot.data[index]);
+                  return _slidableItem(snapshot.data[index]);
                 }
             );
           } else {
@@ -67,7 +70,27 @@ class _BotListState extends State<BotList>{
     );
   }
 
-  Widget _cardItem(int index, BotDetailModel data) {
+  Widget _slidableItem(BotDetailModel data) {
+    return Slidable(
+      delegate: SlidableDrawerDelegate(),
+      actionExtentRatio: 0.25,
+      child: _cardItem(data),
+      secondaryActions: <Widget>[
+        IconSlideAction(
+          caption: 'Archive',
+          color: Colors.deepOrange,
+          icon: Icons.delete,
+          closeOnTap: false,
+          onTap: () {
+            _delete(data);
+          },
+        )
+      ],
+    );
+
+  }
+
+  Widget _cardItem(BotDetailModel data) {
     Widget buildSubTitle() {
       if (data.botType == BotType.REPLY) {
         return Text("キーワード: ${data.replyCondition.keyword}");
@@ -84,8 +107,11 @@ class _BotListState extends State<BotList>{
               leading: data.botType == BotType.REPLY ? Icon(Icons.reply) : Icon(Icons.notifications),
               title: Text(data.title),
               subtitle: buildSubTitle(),
-              onTap: () {
-                Navigator.pushNamed(context, "/botDetail/${data.botId}");
+              onTap: () async {
+                final result = await Navigator.pushNamed(context, "/botDetail/${data.botId}");
+                if (result == true) {
+                  bloc.fetchBotList();
+                }
               },
             ),
             ButtonTheme.bar(
@@ -111,5 +137,28 @@ class _BotListState extends State<BotList>{
         ),
       ),
     );
+  }
+
+  void _delete(BotDetailModel data) async {
+    setState(() {
+      _progressing = true;
+    });
+
+    try {
+      print('submitting to backend...');
+      bloc.deleteBot(data).whenComplete(() {
+        setState(() {
+          _progressing = false;
+        });
+      });
+    } on Error {
+      Scaffold.of(context).showSnackBar(
+          SnackBar(content: Text('削除に失敗しました。再度お試しください。')));
+      setState(() {
+        _progressing = false;
+      });
+    }
+    //Simulate a service call
+    print('submitting Done...');
   }
 }

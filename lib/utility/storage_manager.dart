@@ -33,4 +33,32 @@ class StorageManager {
     previewUrl = previewUrl.toString().split("&token=")[0];
     return Tuple2(originalUrl, previewUrl);
   }
+
+  static Future<Tuple2<String, String>> uploadVideo(File file) async {
+    final storage = FirebaseStorage.instance;
+    final String uuid = Uuid().v4();
+    // original
+    final StorageReference originalRef = storage.ref().child('videos').child('original').child('$uuid.jpg');
+    final StorageUploadTask originalTask = originalRef.putFile(
+      file,
+      StorageMetadata(
+        contentLanguage: 'ja',
+        contentType: 'video/mp4',
+      ),
+    );
+    // preview
+    final StorageReference previewRef = storage.ref().child('videos').child('preview').child('$uuid.jpg');
+    final StorageUploadTask previewTask = previewRef.putFile(
+      file,
+      StorageMetadata(
+        contentLanguage: 'ja',
+        contentType: 'video/mp4',
+      ),
+    );
+    var originalUrl = await (await originalTask.onComplete).ref.getDownloadURL();
+    originalUrl = originalUrl.toString().split("&token=")[0];
+    var previewUrl = await (await previewTask.onComplete).ref.getDownloadURL();
+    previewUrl = previewUrl.toString().split("&token=")[0];
+    return Tuple2(originalUrl, previewUrl);
+  }
 }

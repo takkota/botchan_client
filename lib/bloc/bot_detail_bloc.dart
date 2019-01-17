@@ -95,10 +95,8 @@ class BotDetailBloc extends Bloc {
 
   Future<Null> save() async {
     if (_data.message is ImageMessage) {
-      print("test:image");
       // 画像メッセージの場合
       if ((_data.message as ImageMessage).cachedImage != null) {
-        print("test:upload");
         // 画像を新規 or 更新の時だけuploadする。
         final urls = await uploadImage();
         (_data.message as ImageMessage).originalContentUrl = urls.item1;

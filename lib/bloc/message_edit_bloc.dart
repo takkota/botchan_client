@@ -4,8 +4,10 @@ import 'dart:io';
 import 'package:bloc_provider/bloc_provider.dart';
 import 'package:botchan_client/model/message_edit_model.dart';
 import 'package:botchan_client/model/partial/message.dart';
+import 'package:botchan_client/model/partial/message/flex_message.dart';
 import 'package:botchan_client/model/partial/message/image_message.dart';
 import 'package:botchan_client/model/partial/message/text_message.dart';
+import 'package:botchan_client/model/partial/message/video_message.dart';
 import 'package:rxdart/rxdart.dart';
 
 class MessageEditBloc extends Bloc {
@@ -28,6 +30,12 @@ class MessageEditBloc extends Bloc {
       case MessageType.IMAGE:
         _model.message = ImageMessage();
         break;
+      case MessageType.VIDEO:
+        _model.message = VideoMessage();
+        break;
+      case MessageType.FLEX:
+        _model.message = FlexMessage();
+        break;
     }
     _behaviorSubject.sink.add(_model);
   }
@@ -41,6 +49,11 @@ class MessageEditBloc extends Bloc {
 
   void saveImageCache(File file) {
     (_model.message as ImageMessage).cachedImage = file;
+    _behaviorSubject.sink.add(_model);
+  }
+
+  void saveVideoCache(File file) {
+    (_model.message as VideoMessage).cachedVideo = file;
     _behaviorSubject.sink.add(_model);
   }
 

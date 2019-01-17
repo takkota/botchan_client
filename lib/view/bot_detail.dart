@@ -135,8 +135,10 @@ class _BotDetailState extends State<BotDetail>{
 
   Widget _body(bool hasData) {
     if (hasData) {
+      final model = botBloc.getCurrentModel();
       return Column(
         crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisSize: MainAxisSize.max,
         children: <Widget>[
           Center(
             child: Container(
@@ -154,19 +156,23 @@ class _BotDetailState extends State<BotDetail>{
               ),
             ),
           ),
-          Center(child: Text("ボットのタイプ"), heightFactor: 3.0),
-          Row(
-            children: <Widget>[
-              Expanded(child: _buildCupertinoSegmentedControl())
-            ],
-          ),
+          //Center(child: Text("ボットのタイプ"), heightFactor: 3.0),
+          //Row(
+          //  children: <Widget>[
+          //    Expanded(child: _buildCupertinoSegmentedControl())
+          //  ],
+          //),
           _buildConditionList(),
+          Padding(
+            padding: EdgeInsets.all(10.0),
+            child: Text("メッセージプレビュー", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.black45)),
+          ),
           Expanded(
-              child: Container(
-                  padding: EdgeInsets.all(80.0),
-                  child: _buildMessagePreview()
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14.0),
+                child: _buildMessagePreview()
               )
-          )
+          ),
         ],
       );
     } else {
@@ -234,22 +240,67 @@ class _BotDetailState extends State<BotDetail>{
 
   Widget _buildMessagePreview() {
     final model = botBloc.getCurrentModel();
-    return InkWell(
-        child: MessagePreview(message: model.message),
-        onTap: () {
-          Navigator.push(context,
-              MaterialPageRoute(builder: (context) =>
-                  BlocProvider(
-                      child: MessageEditor(onCompleteEdit: (message) {
-                        // 編集完了。新しいMessageでpreviewを再構築する。
-                        botBloc.reflectMessageEdit(message);
-                      }),
-                      creator: (context, bag) => MessageEditBloc(message: model.message)
-                  ),
-                  fullscreenDialog: false)
-          );
-        }
-    );
+
+    void onTap() {
+      Navigator.push(context,
+          MaterialPageRoute(builder: (context) =>
+              BlocProvider(
+                  child: MessageEditor(onCompleteEdit: (message) {
+                    // 編集完了。新しいMessageでpreviewを再構築する。
+                    botBloc.reflectMessageEdit(message);
+                  }),
+                  creator: (context, bag) => MessageEditBloc(message: model.message)
+              ),
+              fullscreenDialog: true)
+      );
+    }
+
+    if (model.message?.hasContent() == true) {
+      // プレビュー
+      return Column(
+        children: <Widget>[
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: MessagePreview(message: model.message),
+          ),
+          Padding(
+            padding: EdgeInsets.only(top: 5.0),
+          ),
+          InkWell(
+            onTap: onTap,
+            child: Container(
+              decoration: BoxDecoration(border: Border.all()),
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Icon(Icons.mode_edit),
+                    Text("編集する")
+                  ],
+                ),
+              ),
+            )
+          )
+        ],
+      );
+    } else {
+      // 未作成
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 40.0),
+        child: InkWell(
+            onTap: onTap,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                Icon(Icons.open_in_new),
+                Text("メッセージを作成する"),
+              ],
+            )
+        ),
+      );
+    }
   }
 
   Widget _buildReplyConditionList(BotDetailModel data) {

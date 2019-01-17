@@ -29,4 +29,13 @@ class FileController {
     }
     return imageFile;
   }
+
+  static Future<File> getVideoFromDevice(ImageSource source) async {
+    var videoFile = await ImagePicker.pickVideo(source: source);
+
+    if (videoFile == null) {
+      return null;
+    }
+    return videoFile;
+  }
 }

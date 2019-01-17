@@ -4,6 +4,7 @@ import 'package:botchan_client/model/message_edit_model.dart';
 import 'package:botchan_client/model/partial/message.dart';
 import 'package:botchan_client/model/partial/message/text_message.dart';
 import 'package:botchan_client/view/widget/message_editable.dart';
+import 'package:botchan_client/view/widget/select_message_type_overlay.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
@@ -18,6 +19,7 @@ class MessageEditor extends StatefulWidget {
 
 class _MessageEditorState extends State<MessageEditor>{
   MessageEditBloc bloc;
+  bool isEditingText = false;
 
   @override
   void initState() {
@@ -30,7 +32,6 @@ class _MessageEditorState extends State<MessageEditor>{
     return Scaffold(
         appBar: AppBar(
           title: Text("メッセージ編集"),
-          automaticallyImplyLeading: false,
           actions: <Widget>[
             FlatButton(
                 onPressed: () {
@@ -39,7 +40,7 @@ class _MessageEditorState extends State<MessageEditor>{
                 },
                 textColor: Colors.white,
                 child: Text(
-                    "保存",
+                    "完了",
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)
                 )
             )
@@ -61,40 +62,41 @@ class _MessageEditorState extends State<MessageEditor>{
         }
       });
     }
-    return Stack(
-      children: <Widget>[
-        Padding(
-          padding: EdgeInsets.all(20.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+    return
+      Stack(
+        children: <Widget>[
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
-              InkWell(
-                child: Padding(padding: EdgeInsets.all(15.0),child: Icon(Icons.message)),
-                onTap: () {
-                  showAlertOrNot(MessageType.TEXT);
-                },
+              MessageEditable(onChangedTextFocus: (isEditingText) {
+                setState(() {
+                  this.isEditingText = isEditingText;
+                });
+              }),
+              Container(
+                child: InkWell(
+                  child: Icon(Icons.view_quilt),
+                  onTap: () {
+                    Navigator.of(context).push(
+                        MessageTypeSelectOverlay(onSelectType: (type) {
+                          showAlertOrNot(type);
+                        })
+                    );
+                    //showAlertOrNot(MessageType.FLEX);
+                  },
+                ),
+                decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.deepOrangeAccent),
               ),
-              InkWell(
-                child: Padding(padding: EdgeInsets.all(15.0),child: Icon(Icons.image)),
-                onTap: () {
-                  showAlertOrNot(MessageType.IMAGE);
-                },
-              ),
-              InkWell(
-                child: Padding(padding: EdgeInsets.all(15.0),child: Icon(Icons.library_books)),
-                onTap: () {
-                  showAlertOrNot(MessageType.IMAGE);
-                },
-              ),
+              Text("レイアウトを変更", style: TextStyle(fontSize: 12.0))
             ],
           ),
-        ),
-        Center(
-            child: MessageEditable()
-        )
-          //child: Text("aaa"),
-      ],
-    );
+          // テキスト編集時の完了ボタン
+          Container(
+            alignment: FractionalOffset(0.5, 1.0),
+            child: _normalToolBar(),
+          ),
+        ],
+      );
   }
 
   void showAlertDialog(VoidCallback onConfirm) {
@@ -124,6 +126,30 @@ class _MessageEditorState extends State<MessageEditor>{
         );
       }
     );
+  }
+
+  Widget _normalToolBar() {
+    if (isEditingText) {
+      return Container(
+          decoration: BoxDecoration(
+              border: BorderDirectional(top: BorderSide(color: Colors.black)),
+              color: Colors.grey[200]),
+          height: 50.0,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              CupertinoButton(
+                child: Text('完了'),
+                onPressed: () {
+                  FocusScope.of(context).requestFocus(new FocusNode()); // キーボード閉じる
+                },
+              )
+            ],
+          ));
+    } else {
+      return Container();
+    }
   }
 
   @override

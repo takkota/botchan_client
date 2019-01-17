@@ -215,7 +215,7 @@ class _MainPageState extends State<MainPage> with AfterLayoutMixin<MainPage>, Wi
       case 1:
         return "グループ一覧";
       case 2:
-        return "オプション";
+        return "設定";
     }
     return "";
   }
